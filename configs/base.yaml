@@ -1,0 +1,48 @@
+data:
+  raw_dir: "data/raw"
+  parsed_dir: "data/parsed"
+  enriched_dir: "data/enriched"
+  features_dir: "data/features"
+
+ingestion:
+  supported_formats: ["pdf"]
+  min_pages: 1
+  min_text_length: 100
+
+chunking:
+  chunk_size: 512
+  overlap: 50
+  preserve_tables: true
+
+embeddings:
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  batch_size: 32
+  device: "cpu"
+
+vector_store:
+  type: "faiss"
+  index_type: "IVF"
+  nlist: 100
+
+agents:
+  retriever:
+    top_k: 5
+  compliance:
+    risk_keywords:
+      high: ["gdpr", "personal_data", "privacy"]
+      medium: ["mifid", "psd2", "regulatory"]
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+
+monitoring:
+  enable_audit_log: true
+  audit_log_path: "logs/audit.log"
+  metrics_export_interval: 60
+
+security:
+  enable_auth: true
+  pii_redaction: true
+  data_retention_days: 90

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Intelligence - Streaming Query</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .cursor-blink {
+            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen">
+    <div class="max-w-6xl mx-auto p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">
+                📄 Document Intelligence
+            </h1>
+            <p class="text-blue-200">
+                Streaming AI-powered regulatory document analysis
+            </p>
+        </div>
+
+        <!-- Query Input -->
+        <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                Ask a question about financial regulations
+            </label>
+            
+            <div class="flex gap-3">
+                <input
+                    type="text"
+                    id="queryInput"
+                    placeholder="e.g., What are PSD2 authentication requirements?"
+                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                
+                <button
+                    id="queryBtn"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                    🚀 Query
+                </button>
+                
+                <button
+                    id="cancelBtn"
+                    class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 hidden transition-colors"
+                >
+                    ❌ Cancel
+                </button>
+            </div>
+
+            <!-- Example queries -->
+            <div class="mt-3 flex flex-wrap gap-2">
+                <span class="text-xs text-gray-500">Try:</span>
+                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
+                    What is PSD2 Article 97?
+                </button>
+                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
+                    GDPR authentication requirements
+                </button>
+                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
+                    Basel III capital ratios
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div id="progressBar" class="bg-white rounded-lg shadow-xl p-6 mb-6 hidden">
+            <div class="flex items-center justify-between mb-2">
+                <span id="statusText" class="text-sm font-medium text-gray-700">Processing...</span>
+                <span id="stepText" class="text-sm text-gray-500">Step 0 of 4</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progressFill" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="errorBox" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 hidden">
+            <div class="flex items-start gap-3">
+                <span class="text-red-600 text-xl">⚠️</span>
+                <div>
+                    <h3 class="font-medium text-red-900">Error</h3>
+                    <p id="errorMessage" class="text-sm text-red-700"></p>
+                    <p class="text-xs text-red-600 mt-1">
+                        Make sure FastAPI is running on http://localhost:8000
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Answer -->
+            <div class="lg:col-span-2 bg-white rounded-lg shadow-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">Answer</h2>
+                    <div id="confidenceBadge" class="hidden">
+                        <span class="text-sm text-green-700 font-medium">
+                            ✓ <span id="confidenceText">0%</span> confident
+                        </span>
+                    </div>
+                </div>
+
+                <div id="answerBox" class="prose prose-sm max-w-none text-gray-700 leading-relaxed min-h-[200px] max-h-96 overflow-y-auto">
+                    <div class="text-center py-12 text-gray-400">
+                        <div class="text-4xl mb-3">💭</div>
+                        <p>Ask a question to get started</p>
+                    </div>
+                </div>
+
+                <!-- Citations -->
+                <div id="citationsBox" class="mt-6 pt-6 border-t border-gray-200 hidden">
+                    <h3 class="font-semibold text-gray-900 mb-3">Sources</h3>
+                    <div id="citationsList" class="space-y-2"></div>
+                </div>
+
+                <!-- Metadata -->
+                <div id="metadataBox" class="mt-4 pt-4 border-t border-gray-200 hidden">
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>Risk Level: <span id="riskLevel" class="font-medium"></span></span>
+                        <span>•</span>
+                        <span>Response Time: <span id="latency">0</span>ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retrieved Documents Sidebar -->
+            <div class="bg-white rounded-lg shadow-xl p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">
+                    Retrieved Documents
+                </h2>
+
+                <div id="documentsBox">
+                    <div class="text-center py-8 text-gray-400">
+                        <p class="text-sm">Documents will appear here during retrieval</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="mt-8 bg-white/10 backdrop-blur rounded-lg p-6 text-white">
+            <h3 class="font-semibold mb-3">🔍 How Streaming Works</h3>
+            <ol class="text-sm space-y-2 text-blue-100">
+                <li>1️⃣ Query is embedded into vector representation</li>
+                <li>2️⃣ Vector database searches for similar documents</li>
+                <li>3️⃣ Retrieved documents are shown in real-time</li>
+                <li>4️⃣ LLM generates answer token-by-token (streaming)</li>
+                <li>5️⃣ Citations and metadata are provided at the end</li>
+            </ol>
+        </div>
+
+        <!-- API Status -->
+        <div class="mt-4 text-center">
+            <p class="text-xs text-blue-200">
+                API Endpoint: <code class="bg-white/10 px-2 py-1 rounded">http://localhost:8000/query/stream</code>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let abortController = null;
+        let isStreaming = false;
+
+        // Elements
+        const queryInput = document.getElementById('queryInput');
+        const queryBtn = document.getElementById('queryBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        const stepText = document.getElementById('stepText');
+        const progressFill = document.getElementById('progressFill');
+        const errorBox = document.getElementById('errorBox');
+        const errorMessage = document.getElementById('errorMessage');
+        const answerBox = document.getElementById('answerBox');
+        const confidenceBadge = document.getElementById('confidenceBadge');
+        const confidenceText = document.getElementById('confidenceText');
+        const citationsBox = document.getElementById('citationsBox');
+        const citationsList = document.getElementById('citationsList');
+        const metadataBox = document.getElementById('metadataBox');
+        const riskLevel = document.getElementById('riskLevel');
+        const latency = document.getElementById('latency');
+        const documentsBox = document.getElementById('documentsBox');
+
+        // Example queries
+        document.querySelectorAll('.example-query').forEach(btn => {
+            btn.addEventListener('click', () => {
+                queryInput.value = btn.textContent;
+            });
+        });
+
+        // Query button
+        queryBtn.addEventListener('click', handleQuery);
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !isStreaming) {
+                handleQuery();
+            }
+        });
+
+        // Cancel button
+        cancelBtn.addEventListener('click', () => {
+            if (abortController) {
+                abortController.abort();
+            }
+            isStreaming = false;
+            updateUI();
+        });
+
+        async function handleQuery() {
+            const query = queryInput.value.trim();
+            if (!query || isStreaming) return;
+
+            // Reset UI
+            isStreaming = true;
+            updateUI();
+            resetState();
+
+            // Create abort controller
+            abortController = new AbortController();
+
+            try {
+                const response = await fetch('http://localhost:8000/query/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 5
+                    }),
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let streamingAnswer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            
+                            if (data === '[DONE]') {
+                                isStreaming = false;
+                                updateUI();
+                                break;
+                            }
+
+                            try {
+                                const parsed = JSON.parse(data);
+                                handleStreamEvent(parsed, streamingAnswer);
+                                
+                                if (parsed.type === 'token') {
+                                    streamingAnswer += parsed.token;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing SSE:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    showError('Request cancelled');
+                } else {
+                    showError(err.message || 'Failed to connect to API. Make sure FastAPI is running on http://localhost:8000');
+                }
+                isStreaming = false;
+                updateUI();
+            }
+        }
+
+        function handleStreamEvent(event, currentAnswer) {
+            switch (event.type) {
+                case 'status':
+                    statusText.textContent = event.message;
+                    stepText.textContent = `Step ${event.step} of ${event.total}`;
+                    const progress = (event.step / event.total) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    break;
+
+                case 'retrieval':
+                    displayDocuments(event.documents);
+                    break;
+
+                case 'token':
+                    displayStreamingAnswer(currentAnswer + event.token);
+                    break;
+
+                case 'complete':
+                    displayStreamingAnswer(event.answer);
+                    displayCitations(event.citations);
+                    displayMetadata(event);
+                    break;
+            }
+        }
+
+        function displayStreamingAnswer(text) {
+            answerBox.innerHTML = `<p>${text}<span class="inline-block w-2 h-4 bg-blue-600 ml-1 cursor-blink"></span></p>`;
+            answerBox.scrollTop = answerBox.scrollHeight;
+        }
+
+        function displayDocuments(docs) {
+            documentsBox.innerHTML = docs.map((doc, idx) => `
+                <div class="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-mono text-gray-500">${doc.doc_id}</span>
+                        <span class="text-xs font-semibold text-blue-600">${Math.round(doc.score * 100)}%</span>
+                    </div>
+                    <div class="text-sm font-medium text-gray-900 mb-1">${doc.section}</div>
+                    <p class="text-xs text-gray-600 line-clamp-3">${doc.text}</p>
+                </div>
+            `).join('');
+        }
+
+        function displayCitations(citations) {
+            citationsBox.classList.remove('hidden');
+            citationsList.innerHTML = citations.map((citation, idx) => `
+                <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                    <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        ${idx + 1}
+                    </div>
+                    <div class="text-sm">
+                        <div class="font-medium text-gray-900">${citation.doc_id}</div>
+                        <div class="text-gray-600">${citation.section} • Page ${citation.page}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayMetadata(data) {
+            confidenceBadge.classList.remove('hidden');
+            confidenceText.textContent = `${Math.round(data.confidence * 100)}%`;
+            
+            metadataBox.classList.remove('hidden');
+            riskLevel.textContent = data.risk_level;
+            riskLevel.className = `font-medium ${
+                data.risk_level === 'HIGH' ? 'text-red-600' :
+                data.risk_level === 'MEDIUM' ? 'text-yellow-600' :
+                'text-green-600'
+            }`;
+            latency.textContent = data.latency_ms;
+        }
+
+        function showError(message) {
+            errorBox.classList.remove('hidden');
+            errorMessage.textContent = message;
+        }
+
+        function resetState() {
+            errorBox.classList.add('hidden');
+            progressBar.classList.remove('hidden');
+            answerBox.innerHTML = '<div class="text-center py-8 text-gray-400"><div class="animate-spin text-3xl mb-2">⚙️</div><p>Processing...</p></div>';
+            confidenceBadge.classList.add('hidden');
+            citationsBox.classList.add('hidden');
+            metadataBox.classList.add('hidden');
+            documentsBox.innerHTML = '<div class="text-center py-8 text-gray-400"><p class="text-sm">Searching...</p></div>';
+            progressFill.style.width = '0%';
+        }
+
+        function updateUI() {
+            if (isStreaming) {
+                queryBtn.classList.add('hidden');
+                cancelBtn.classList.remove('hidden');
+                queryInput.disabled = true;
+            } else {
+                queryBtn.classList.remove('hidden');
+                cancelBtn.classList.add('hidden');
+                queryInput.disabled = false;
+                progressBar.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

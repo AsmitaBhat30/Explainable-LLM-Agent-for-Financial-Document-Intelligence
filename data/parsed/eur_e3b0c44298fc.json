@@ -1,0 +1,17 @@
+{
+  "doc_id": "eur_e3b0c44298fc",
+  "doc_type": "regulation",
+  "source": "EUR-Lex",
+  "title": "Payment Services Directive 2 (PSD2)",
+  "text": "",
+  "sections": [],
+  "tables": [],
+  "metadata": {
+    "regulation_type": "PSD2",
+    "jurisdiction": "EU",
+    "source_file": "psd2_directive_2015",
+    "processing_date": "2026-02-04T14:00:37.572781",
+    "language": "en"
+  },
+  "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

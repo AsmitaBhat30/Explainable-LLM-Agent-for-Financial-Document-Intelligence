@@ -1,0 +1,31 @@
+# PyCharm
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Data (usually too large for git)
+data/parsed/
+data/features/
+
+# Jupyter
+.ipynb_checkpoints/

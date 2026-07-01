@@ -29,3 +29,6 @@ data/features/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Private
+Interview_Guide.md

@@ -46,3 +46,15 @@ class AuditLogger:
             "decision": decision
         }
         self.logger.info(json.dumps(entry))
+
+    def log_auth_event(self, username: str, event: str, success: bool, detail: str = ""):
+        """Log authentication events for compliance audit trail."""
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "event_type": "auth",
+            "username": username,
+            "event": event,
+            "success": success,
+            "detail": detail,
+        }
+        self.logger.info(json.dumps(entry))

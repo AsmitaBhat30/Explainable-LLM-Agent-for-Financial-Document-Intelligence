@@ -31,6 +31,13 @@ agents:
     risk_keywords:
       high: ["gdpr", "personal_data", "privacy"]
       medium: ["mifid", "psd2", "regulatory"]
+  explanation:
+    llm_provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.0
+
+evaluation:
+  faithfulness_threshold: 0.5
 
 api:
   host: "0.0.0.0"

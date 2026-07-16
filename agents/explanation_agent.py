@@ -111,17 +111,20 @@ ANSWER:"""
         return content.strip() if content else ""
 
     def _extract_citations(self, chunks: List[Dict]) -> List[Dict]:
-        """Extract citation information including a text snippet for UI preview."""
-        return [
-            {
-                "doc_id": c["doc_id"],
-                "section": c["section"],
-                "page_range": c.get("page_range", []),
-                "score": round(float(c.get("score", 0.0)), 4),
-                "text": c.get("text", "")[:600],
-            }
-            for c in chunks
-        ]
+        """Deduplicated citations: one entry per (doc_id, section), highest score wins."""
+        seen: dict = {}
+        for c in chunks:
+            key = (c.get("doc_id", ""), c.get("section", ""))
+            score = float(c.get("score", 0.0))
+            if key not in seen or score > seen[key]["score"]:
+                seen[key] = {
+                    "doc_id": c.get("doc_id", ""),
+                    "section": c.get("section", ""),
+                    "page_range": c.get("page_range", []),
+                    "score": round(score, 4),
+                    "text": c.get("text", "")[:600],
+                }
+        return list(seen.values())
 
     def _identify_risks(self, compliance: Dict) -> List[str]:
         """Identify potential risks or missing information."""

@@ -1,12 +1,14 @@
 import logging
 import json
+import os
 from datetime import datetime
 from typing import Dict, Any
 
 class AuditLogger:
     """Compliance-focused audit logging."""
-    
+
     def __init__(self, log_file: str = "audit.log"):
+        os.makedirs(os.path.dirname(log_file), exist_ok=True) if os.path.dirname(log_file) else None
         self.logger = logging.getLogger("audit")
         handler = logging.FileHandler(log_file)
         handler.setFormatter(logging.Formatter('%(message)s'))

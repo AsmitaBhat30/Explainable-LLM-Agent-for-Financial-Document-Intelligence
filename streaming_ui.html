@@ -1,394 +1,733 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Intelligence - Streaming Query</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .cursor-blink {
-            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Intelligence · Streaming Query</title>
+<style>
+:root {
+  --bg:      #060F1C;
+  --panel:   #0C1E33;
+  --panel2:  #0A1929;
+  --border:  #18334F;
+  --text:    #C8DCF0;
+  --muted:   #4E7094;
+  --dim:     #2A4460;
+  --accent:  #3B9EFF;
+  --green:   #22C55E;
+  --amber:   #F59E0B;
+  --red:     #F87171;
+  --mono: 'SF Mono','Cascadia Code','Fira Code','Consolas',monospace;
+  --sans: -apple-system,'Segoe UI',system-ui,sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Topbar ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 48px; padding: 0 1.5rem;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 20;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--text);
+}
+
+.brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+.topbar-meta {
+  display: flex; align-items: center; gap: 1.5rem;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+}
+
+.status-badge {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.2em 0.65em; border-radius: 3px;
+  font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  color: var(--green);
+}
+
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Query area ── */
+.query-section {
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+}
+
+.query-label {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;
+}
+
+.query-row {
+  display: flex; align-items: center; gap: 0.75rem;
+}
+
+.prompt-sym {
+  font-family: var(--mono); font-size: 1rem; color: var(--accent); flex-shrink: 0;
+}
+
+#queryInput {
+  flex: 1;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 0.82rem;
+  padding: 0.6rem 0.85rem; border-radius: 5px; outline: none;
+  transition: border-color 0.15s;
+}
+#queryInput:focus { border-color: var(--accent); }
+#queryInput::placeholder { color: var(--dim); }
+#queryInput:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  padding: 0.55rem 1.1rem; border-radius: 4px; border: 1px solid;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+
+.btn-primary {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-cancel {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
+  color: var(--red);
+}
+.btn-cancel:hover { background: color-mix(in srgb, var(--red) 20%, transparent); }
+
+.examples {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.ex-label { font-family: var(--mono); font-size: 0.6rem; color: var(--dim); }
+
+.ex-chip {
+  font-family: var(--mono); font-size: 0.65rem;
+  padding: 0.2em 0.6em; border-radius: 3px; cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border); color: var(--muted);
+  transition: border-color 0.15s, color 0.15s;
+}
+.ex-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Main layout ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  height: calc(100vh - 48px - 80px);
+  overflow: hidden;
+}
+
+/* ── Left panel ── */
+.left { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
+
+/* Status rows */
+.status-rows {
+  padding: 0.75rem 1.25rem 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel2);
+  min-height: 88px;
+}
+
+.status-row {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  height: 26px; opacity: 0; transition: opacity 0.25s;
+}
+.status-row.visible { opacity: 1; }
+
+.status-icon {
+  width: 14px; height: 14px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 0.6rem;
+}
+.status-icon.spinning {
+  border: 1.5px solid var(--dim); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+.status-icon.done  { background: color-mix(in srgb,var(--green) 15%,transparent); color:var(--green); }
+.status-icon.warn  { background: color-mix(in srgb,var(--amber) 15%,transparent); color:var(--amber); }
+.status-icon.error { background: color-mix(in srgb,var(--red)   15%,transparent); color:var(--red);   }
+
+/* Response area */
+.response-area {
+  flex: 1; overflow-y: auto; padding: 1.25rem;
+  display: flex; flex-direction: column; gap: 0;
+}
+.response-area::-webkit-scrollbar { width: 4px; }
+.response-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+.response-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; color: var(--dim); font-family: var(--mono); font-size: 0.75rem;
+  gap: 0.5rem; text-align: center;
+}
+
+.answer-block {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem 1.1rem;
+  display: none;
+}
+
+.block-label {
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 0.6rem;
+}
+
+#answerText {
+  font-size: 0.84rem; line-height: 1.75; color: var(--text);
+  min-height: 2em;
+}
+
+.cursor {
+  display: inline-block; width: 2px; height: 0.9em;
+  background: var(--accent); vertical-align: text-bottom;
+  animation: blink 0.9s step-end infinite; margin-left: 1px;
+}
+
+/* Citations */
+.citations {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin-top: 0.9rem; padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.cite-chip {
+  font-family: var(--mono); font-size: 0.62rem;
+  padding: 0.2em 0.6em; border-radius: 3px;
+  background: color-mix(in srgb,var(--accent) 10%,transparent);
+  border: 1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+  color: var(--accent);
+}
+
+/* Review flag */
+.review-flag {
+  display: none; align-items: center; gap: 0.4rem;
+  font-family: var(--mono); font-size: 0.68rem;
+  padding: 0.35em 0.75em; border-radius: 3px; margin-top: 0.75rem;
+  background: color-mix(in srgb,var(--amber) 8%,transparent);
+  border: 1px solid color-mix(in srgb,var(--amber) 30%,transparent);
+  color: var(--amber);
+}
+
+/* Metadata row */
+.meta-row {
+  display: none; align-items: center; gap: 1rem;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.meta-val { color: var(--text); }
+.meta-val.risk-high   { color: var(--red); }
+.meta-val.risk-medium { color: var(--amber); }
+.meta-val.risk-low    { color: var(--green); }
+.meta-val.confidence  { color: var(--green); }
+
+/* Error box */
+.error-box {
+  display: none; margin: 1rem;
+  background: color-mix(in srgb,var(--red) 8%,transparent);
+  border: 1px solid color-mix(in srgb,var(--red) 30%,transparent);
+  border-radius: 6px; padding: 0.85rem 1rem;
+  font-family: var(--mono); font-size: 0.72rem; color: var(--red);
+}
+
+/* ── Right panel ── */
+.right {
+  display: flex; flex-direction: column;
+  background: var(--panel2); overflow: hidden;
+}
+
+.panel-header {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Agent rows */
+.agents { padding: 0.75rem 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+
+.agent-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.55rem 0.7rem; border-radius: 5px;
+  border: 1px solid var(--border); background: transparent;
+  transition: background 0.25s, border-color 0.25s;
+}
+.agent-row.active { border-color: color-mix(in srgb,var(--accent) 40%,transparent); background: color-mix(in srgb,var(--accent) 6%,transparent); }
+.agent-row.done   { border-color: color-mix(in srgb,var(--green)  35%,transparent); background: color-mix(in srgb,var(--green)  5%,transparent); }
+
+.agent-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--dim); flex-shrink: 0; transition: background 0.25s;
+}
+.agent-row.active .agent-dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.agent-row.done   .agent-dot { background: var(--green); animation: none; }
+
+.agent-name {
+  font-family: var(--mono); font-size: 0.72rem;
+  color: var(--muted); flex: 1; transition: color 0.25s;
+}
+.agent-row.active .agent-name,
+.agent-row.done   .agent-name { color: var(--text); }
+
+.agent-tag {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--dim);
+}
+
+/* Retrieved docs */
+.docs-area {
+  flex: 1; overflow-y: auto; padding: 0.75rem 0.85rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.docs-area::-webkit-scrollbar { width: 3px; }
+.docs-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+.doc-placeholder {
+  font-family: var(--mono); font-size: 0.68rem; color: var(--dim);
+  text-align: center; margin-top: 1rem;
+}
+
+.doc-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 5px; padding: 0.65rem 0.75rem;
+}
+
+.doc-card-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.doc-id { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+.doc-score { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); font-weight: 600; }
+.doc-section { font-family: var(--mono); font-size: 0.7rem; color: var(--text); margin-bottom: 0.25rem; }
+.doc-excerpt { font-size: 0.72rem; color: var(--muted); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Progress bar */
+.progress-wrap {
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.progress-label {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.progress-bg {
+  height: 3px; background: var(--dim); border-radius: 2px; overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%; background: var(--accent); border-radius: 2px;
+  width: 0%; transition: width 0.35s ease;
+}
+
+/* hidden utility */
+.hidden { display: none !important; }
+</style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen">
-    <div class="max-w-6xl mx-auto p-8">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2">
-                📄 Document Intelligence
-            </h1>
-            <p class="text-blue-200">
-                Streaming AI-powered regulatory document analysis
-            </p>
-        </div>
+<body>
 
-        <!-- Query Input -->
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-                Ask a question about financial regulations
-            </label>
-            
-            <div class="flex gap-3">
-                <input
-                    type="text"
-                    id="queryInput"
-                    placeholder="e.g., What are PSD2 authentication requirements?"
-                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-                
-                <button
-                    id="queryBtn"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                    🚀 Query
-                </button>
-                
-                <button
-                    id="cancelBtn"
-                    class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 hidden transition-colors"
-                >
-                    ❌ Cancel
-                </button>
-            </div>
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    Explainable LLM Agent · Financial Document Intelligence
+  </div>
+  <div class="topbar-meta">
+    <span>FastAPI :8000</span>
+    <span>FAISS IVF · SSE</span>
+    <div class="status-badge"><div class="status-dot"></div>Ready</div>
+  </div>
+</div>
 
-            <!-- Example queries -->
-            <div class="mt-3 flex flex-wrap gap-2">
-                <span class="text-xs text-gray-500">Try:</span>
-                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
-                    What is PSD2 Article 97?
-                </button>
-                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
-                    GDPR authentication requirements
-                </button>
-                <button class="example-query text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors">
-                    Basel III capital ratios
-                </button>
-            </div>
-        </div>
+<!-- Query section -->
+<div class="query-section">
+  <div class="query-label">Query</div>
+  <div class="query-row">
+    <span class="prompt-sym">›</span>
+    <input type="text" id="queryInput" placeholder="Ask a regulatory compliance question…" autocomplete="off"/>
+    <button class="btn btn-primary" id="queryBtn">Submit</button>
+    <button class="btn btn-cancel hidden" id="cancelBtn">Cancel</button>
+  </div>
+  <div class="examples">
+    <span class="ex-label">try:</span>
+    <button class="ex-chip">What is PSD2 Article 97?</button>
+    <button class="ex-chip">GDPR right to erasure</button>
+    <button class="ex-chip">Basel III capital ratios</button>
+    <button class="ex-chip">MiFID II position limits</button>
+  </div>
+</div>
 
-        <!-- Progress Bar -->
-        <div id="progressBar" class="bg-white rounded-lg shadow-xl p-6 mb-6 hidden">
-            <div class="flex items-center justify-between mb-2">
-                <span id="statusText" class="text-sm font-medium text-gray-700">Processing...</span>
-                <span id="stepText" class="text-sm text-gray-500">Step 0 of 4</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progressFill" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-        </div>
+<!-- Main layout -->
+<div class="layout">
 
-        <!-- Error Display -->
-        <div id="errorBox" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 hidden">
-            <div class="flex items-start gap-3">
-                <span class="text-red-600 text-xl">⚠️</span>
-                <div>
-                    <h3 class="font-medium text-red-900">Error</h3>
-                    <p id="errorMessage" class="text-sm text-red-700"></p>
-                    <p class="text-xs text-red-600 mt-1">
-                        Make sure FastAPI is running on http://localhost:8000
-                    </p>
-                </div>
-            </div>
-        </div>
+  <!-- Left panel -->
+  <div class="left">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Answer -->
-            <div class="lg:col-span-2 bg-white rounded-lg shadow-xl p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-900">Answer</h2>
-                    <div id="confidenceBadge" class="hidden">
-                        <span class="text-sm text-green-700 font-medium">
-                            ✓ <span id="confidenceText">0%</span> confident
-                        </span>
-                    </div>
-                </div>
-
-                <div id="answerBox" class="prose prose-sm max-w-none text-gray-700 leading-relaxed min-h-[200px] max-h-96 overflow-y-auto">
-                    <div class="text-center py-12 text-gray-400">
-                        <div class="text-4xl mb-3">💭</div>
-                        <p>Ask a question to get started</p>
-                    </div>
-                </div>
-
-                <!-- Citations -->
-                <div id="citationsBox" class="mt-6 pt-6 border-t border-gray-200 hidden">
-                    <h3 class="font-semibold text-gray-900 mb-3">Sources</h3>
-                    <div id="citationsList" class="space-y-2"></div>
-                </div>
-
-                <!-- Metadata -->
-                <div id="metadataBox" class="mt-4 pt-4 border-t border-gray-200 hidden">
-                    <div class="flex items-center gap-4 text-xs text-gray-500">
-                        <span>Risk Level: <span id="riskLevel" class="font-medium"></span></span>
-                        <span>•</span>
-                        <span>Response Time: <span id="latency">0</span>ms</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Retrieved Documents Sidebar -->
-            <div class="bg-white rounded-lg shadow-xl p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">
-                    Retrieved Documents
-                </h2>
-
-                <div id="documentsBox">
-                    <div class="text-center py-8 text-gray-400">
-                        <p class="text-sm">Documents will appear here during retrieval</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- How it works -->
-        <div class="mt-8 bg-white/10 backdrop-blur rounded-lg p-6 text-white">
-            <h3 class="font-semibold mb-3">🔍 How Streaming Works</h3>
-            <ol class="text-sm space-y-2 text-blue-100">
-                <li>1️⃣ Query is embedded into vector representation</li>
-                <li>2️⃣ Vector database searches for similar documents</li>
-                <li>3️⃣ Retrieved documents are shown in real-time</li>
-                <li>4️⃣ LLM generates answer token-by-token (streaming)</li>
-                <li>5️⃣ Citations and metadata are provided at the end</li>
-            </ol>
-        </div>
-
-        <!-- API Status -->
-        <div class="mt-4 text-center">
-            <p class="text-xs text-blue-200">
-                API Endpoint: <code class="bg-white/10 px-2 py-1 rounded">http://localhost:8000/query/stream</code>
-            </p>
-        </div>
+    <!-- Status rows -->
+    <div class="status-rows">
+      <div class="status-row" id="sr-retriever">
+        <div class="status-icon spinning" id="si-retriever"></div>
+        <span id="sm-retriever"></span>
+      </div>
+      <div class="status-row" id="sr-compliance">
+        <div class="status-icon spinning" id="si-compliance"></div>
+        <span id="sm-compliance"></span>
+      </div>
+      <div class="status-row" id="sr-explanation">
+        <div class="status-icon spinning" id="si-explanation"></div>
+        <span id="sm-explanation"></span>
+      </div>
     </div>
 
-    <script>
-        // State
-        let abortController = null;
-        let isStreaming = false;
+    <!-- Error box -->
+    <div class="error-box" id="errorBox"></div>
 
-        // Elements
-        const queryInput = document.getElementById('queryInput');
-        const queryBtn = document.getElementById('queryBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const progressBar = document.getElementById('progressBar');
-        const statusText = document.getElementById('statusText');
-        const stepText = document.getElementById('stepText');
-        const progressFill = document.getElementById('progressFill');
-        const errorBox = document.getElementById('errorBox');
-        const errorMessage = document.getElementById('errorMessage');
-        const answerBox = document.getElementById('answerBox');
-        const confidenceBadge = document.getElementById('confidenceBadge');
-        const confidenceText = document.getElementById('confidenceText');
-        const citationsBox = document.getElementById('citationsBox');
-        const citationsList = document.getElementById('citationsList');
-        const metadataBox = document.getElementById('metadataBox');
-        const riskLevel = document.getElementById('riskLevel');
-        const latency = document.getElementById('latency');
-        const documentsBox = document.getElementById('documentsBox');
+    <!-- Response -->
+    <div class="response-area" id="responseArea">
+      <div class="response-placeholder" id="placeholder">
+        <span style="font-size:1.5rem;color:var(--dim)">›_</span>
+        <span>Submit a query to begin</span>
+      </div>
 
-        // Example queries
-        document.querySelectorAll('.example-query').forEach(btn => {
-            btn.addEventListener('click', () => {
-                queryInput.value = btn.textContent;
-            });
+      <div class="answer-block" id="answerBlock">
+        <div class="block-label">Response</div>
+        <div id="answerText"></div>
+
+        <div class="citations" id="citationsRow"></div>
+
+        <div class="review-flag" id="reviewFlag">
+          ⚠ requires_review: true — human oversight recommended
+        </div>
+
+        <div class="meta-row" id="metaRow">
+          <span>confidence: <span class="meta-val confidence" id="metaConf">—</span></span>
+          <span>·</span>
+          <span>risk: <span class="meta-val" id="metaRisk">—</span></span>
+          <span>·</span>
+          <span>latency: <span class="meta-val" id="metaLatency">—</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right">
+    <div class="panel-header">Agent Pipeline</div>
+
+    <div class="agents">
+      <div class="agent-row" id="ar-retriever">
+        <div class="agent-dot"></div>
+        <div class="agent-name">RetrieverAgent</div>
+        <div class="agent-tag">FAISS</div>
+      </div>
+      <div class="agent-row" id="ar-compliance">
+        <div class="agent-dot"></div>
+        <div class="agent-name">ComplianceAgent</div>
+        <div class="agent-tag">LangChain</div>
+      </div>
+      <div class="agent-row" id="ar-explanation">
+        <div class="agent-dot"></div>
+        <div class="agent-name">ExplanationAgent</div>
+        <div class="agent-tag">GPT-4o</div>
+      </div>
+    </div>
+
+    <div class="panel-header" style="border-top:1px solid var(--border)">Retrieved Documents</div>
+
+    <div class="docs-area" id="docsArea">
+      <div class="doc-placeholder" id="docsPlaceholder">Documents appear during retrieval</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progressLabel">Idle</span>
+        <span id="progressPct">—</span>
+      </div>
+      <div class="progress-bg">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let abortController = null;
+let isStreaming = false;
+let streamingAnswer = '';
+
+const queryInput  = document.getElementById('queryInput');
+const queryBtn    = document.getElementById('queryBtn');
+const cancelBtn   = document.getElementById('cancelBtn');
+const placeholder = document.getElementById('placeholder');
+const answerBlock = document.getElementById('answerBlock');
+const answerText  = document.getElementById('answerText');
+const citationsRow = document.getElementById('citationsRow');
+const reviewFlag  = document.getElementById('reviewFlag');
+const metaRow     = document.getElementById('metaRow');
+const errorBox    = document.getElementById('errorBox');
+const docsArea    = document.getElementById('docsArea');
+const docsPlaceholder = document.getElementById('docsPlaceholder');
+const progressFill  = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const progressPct   = document.getElementById('progressPct');
+
+// Example chips
+document.querySelectorAll('.ex-chip').forEach(btn => {
+  btn.addEventListener('click', () => { queryInput.value = btn.textContent; queryInput.focus(); });
+});
+
+queryBtn.addEventListener('click', handleQuery);
+cancelBtn.addEventListener('click', () => {
+  if (abortController) abortController.abort();
+  isStreaming = false;
+  setProgress('Cancelled', 0);
+  updateUI();
+});
+queryInput.addEventListener('keypress', e => { if (e.key === 'Enter' && !isStreaming) handleQuery(); });
+
+// Agent state helpers
+function setAgent(id, state) {
+  const row = document.getElementById('ar-' + id);
+  row.className = 'agent-row' + (state ? ' ' + state : '');
+}
+
+function showStatus(id, msg, iconState) {
+  const row  = document.getElementById('sr-' + id);
+  const icon = document.getElementById('si-' + id);
+  const msg_ = document.getElementById('sm-' + id);
+  row.classList.add('visible');
+  msg_.textContent = msg;
+  icon.className = 'status-icon ' + iconState;
+  if (iconState === 'done')  icon.textContent = '✓';
+  if (iconState === 'warn')  icon.textContent = '⚠';
+  if (iconState === 'error') icon.textContent = '✕';
+  if (iconState === 'spinning') icon.textContent = '';
+}
+
+function setProgress(label, pct) {
+  progressLabel.textContent = label;
+  progressPct.textContent   = pct > 0 ? pct + '%' : '—';
+  progressFill.style.width  = pct + '%';
+}
+
+function resetUI() {
+  // Clear status rows
+  ['retriever','compliance','explanation'].forEach(id => {
+    document.getElementById('sr-' + id).classList.remove('visible');
+    const icon = document.getElementById('si-' + id);
+    icon.className = 'status-icon spinning';
+    icon.textContent = '';
+    setAgent(id, '');
+  });
+  // Clear answer
+  placeholder.style.display = 'flex';
+  answerBlock.style.display = 'none';
+  answerText.textContent = '';
+  citationsRow.innerHTML = '';
+  reviewFlag.style.display = 'none';
+  metaRow.style.display = 'none';
+  // Clear docs
+  docsPlaceholder.style.display = 'block';
+  docsArea.querySelectorAll('.doc-card').forEach(c => c.remove());
+  // Clear error
+  errorBox.style.display = 'none';
+  errorBox.textContent = '';
+  // Reset progress
+  setProgress('Initialising', 5);
+}
+
+function updateUI() {
+  if (isStreaming) {
+    queryBtn.classList.add('hidden');
+    cancelBtn.classList.remove('hidden');
+    queryInput.disabled = true;
+  } else {
+    queryBtn.classList.remove('hidden');
+    cancelBtn.classList.add('hidden');
+    queryInput.disabled = false;
+    if (!isStreaming && progressFill.style.width !== '100%') {
+      setProgress('Idle', 0);
+    }
+  }
+}
+
+async function handleQuery() {
+  const query = queryInput.value.trim();
+  if (!query || isStreaming) return;
+
+  isStreaming = true;
+  streamingAnswer = '';
+  updateUI();
+  resetUI();
+
+  abortController = new AbortController();
+
+  try {
+    const resp = await fetch('http://localhost:8000/query/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, top_k: 5 }),
+      signal: abortController.signal
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const lines = decoder.decode(value).split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6);
+        if (raw === '[DONE]') { isStreaming = false; setProgress('Complete', 100); updateUI(); break; }
+        try { handleEvent(JSON.parse(raw)); } catch (e) { console.error('SSE parse:', e); }
+      }
+    }
+  } catch (err) {
+    showError(err.name === 'AbortError' ? 'Request cancelled.' : (err.message || 'Could not connect to API at http://localhost:8000'));
+    isStreaming = false;
+    updateUI();
+  }
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+
+    case 'status':
+      setProgress(ev.message, Math.round((ev.step / ev.total) * 100));
+
+      if (ev.step === 1) {
+        setAgent('retriever', 'active');
+        showStatus('retriever', 'Querying FAISS index…', 'spinning');
+      } else if (ev.step === 2) {
+        setAgent('retriever', 'done');
+        showStatus('retriever', 'Retrieval complete', 'done');
+        setAgent('compliance', 'active');
+        showStatus('compliance', 'Analysing regulatory context…', 'spinning');
+      } else if (ev.step === 3) {
+        setAgent('compliance', 'done');
+        showStatus('compliance', ev.message || 'Compliance check done', 'done');
+        setAgent('explanation', 'active');
+        showStatus('explanation', 'Generating cited response…', 'spinning');
+      }
+      break;
+
+    case 'retrieval':
+      docsPlaceholder.style.display = 'none';
+      docsArea.querySelectorAll('.doc-card').forEach(c => c.remove());
+      (ev.documents || []).forEach(doc => {
+        const card = document.createElement('div');
+        card.className = 'doc-card';
+        card.innerHTML = `
+          <div class="doc-card-top">
+            <span class="doc-id">${doc.doc_id}</span>
+            <span class="doc-score">${Math.round(doc.score * 100)}%</span>
+          </div>
+          <div class="doc-section">${doc.section || ''}</div>
+          <div class="doc-excerpt">${doc.text || ''}</div>`;
+        docsArea.appendChild(card);
+      });
+      break;
+
+    case 'token':
+      placeholder.style.display = 'none';
+      answerBlock.style.display = 'block';
+      streamingAnswer += ev.token;
+      answerText.innerHTML = escapeHtml(streamingAnswer) + '<span class="cursor"></span>';
+      answerBlock.scrollIntoView({ block: 'nearest' });
+      break;
+
+    case 'complete':
+      setAgent('explanation', 'done');
+      showStatus('explanation', 'Response complete', 'done');
+
+      placeholder.style.display = 'none';
+      answerBlock.style.display = 'block';
+      answerText.textContent = ev.answer || streamingAnswer;
+
+      // Citations
+      if (ev.citations && ev.citations.length) {
+        citationsRow.innerHTML = '';
+        ev.citations.forEach(c => {
+          const chip = document.createElement('span');
+          chip.className = 'cite-chip';
+          chip.textContent = c.doc_id + (c.section ? ' · ' + c.section : '');
+          citationsRow.appendChild(chip);
         });
+      }
 
-        // Query button
-        queryBtn.addEventListener('click', handleQuery);
-        queryInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !isStreaming) {
-                handleQuery();
-            }
-        });
+      // Risk / review flag
+      if (ev.risk_level === 'HIGH' || ev.requires_review) {
+        reviewFlag.style.display = 'flex';
+        showStatus('compliance', 'requires_review: true', 'warn');
+      }
 
-        // Cancel button
-        cancelBtn.addEventListener('click', () => {
-            if (abortController) {
-                abortController.abort();
-            }
-            isStreaming = false;
-            updateUI();
-        });
+      // Metadata
+      if (ev.confidence !== undefined || ev.risk_level || ev.latency_ms) {
+        metaRow.style.display = 'flex';
+        document.getElementById('metaConf').textContent    = ev.confidence ? Math.round(ev.confidence * 100) + '%' : '—';
+        const riskEl = document.getElementById('metaRisk');
+        riskEl.textContent  = ev.risk_level || '—';
+        riskEl.className    = 'meta-val ' + (ev.risk_level === 'HIGH' ? 'risk-high' : ev.risk_level === 'MEDIUM' ? 'risk-medium' : 'risk-low');
+        document.getElementById('metaLatency').textContent = ev.latency_ms ? ev.latency_ms + ' ms' : '—';
+      }
 
-        async function handleQuery() {
-            const query = queryInput.value.trim();
-            if (!query || isStreaming) return;
+      setProgress('Complete', 100);
+      break;
+  }
+}
 
-            // Reset UI
-            isStreaming = true;
-            updateUI();
-            resetState();
+function showError(msg) {
+  errorBox.style.display = 'block';
+  errorBox.textContent = '✕  ' + msg;
+  setAgent('retriever',''); setAgent('compliance',''); setAgent('explanation','');
+  setProgress('Error', 0);
+}
 
-            // Create abort controller
-            abortController = new AbortController();
-
-            try {
-                const response = await fetch('http://localhost:8000/query/stream', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: query,
-                        top_k: 5
-                    }),
-                    signal: abortController.signal
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let streamingAnswer = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    
-                    if (done) break;
-
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            
-                            if (data === '[DONE]') {
-                                isStreaming = false;
-                                updateUI();
-                                break;
-                            }
-
-                            try {
-                                const parsed = JSON.parse(data);
-                                handleStreamEvent(parsed, streamingAnswer);
-                                
-                                if (parsed.type === 'token') {
-                                    streamingAnswer += parsed.token;
-                                }
-                            } catch (e) {
-                                console.error('Error parsing SSE:', e);
-                            }
-                        }
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    showError('Request cancelled');
-                } else {
-                    showError(err.message || 'Failed to connect to API. Make sure FastAPI is running on http://localhost:8000');
-                }
-                isStreaming = false;
-                updateUI();
-            }
-        }
-
-        function handleStreamEvent(event, currentAnswer) {
-            switch (event.type) {
-                case 'status':
-                    statusText.textContent = event.message;
-                    stepText.textContent = `Step ${event.step} of ${event.total}`;
-                    const progress = (event.step / event.total) * 100;
-                    progressFill.style.width = `${progress}%`;
-                    break;
-
-                case 'retrieval':
-                    displayDocuments(event.documents);
-                    break;
-
-                case 'token':
-                    displayStreamingAnswer(currentAnswer + event.token);
-                    break;
-
-                case 'complete':
-                    displayStreamingAnswer(event.answer);
-                    displayCitations(event.citations);
-                    displayMetadata(event);
-                    break;
-            }
-        }
-
-        function displayStreamingAnswer(text) {
-            answerBox.innerHTML = `<p>${text}<span class="inline-block w-2 h-4 bg-blue-600 ml-1 cursor-blink"></span></p>`;
-            answerBox.scrollTop = answerBox.scrollHeight;
-        }
-
-        function displayDocuments(docs) {
-            documentsBox.innerHTML = docs.map((doc, idx) => `
-                <div class="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors mb-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-mono text-gray-500">${doc.doc_id}</span>
-                        <span class="text-xs font-semibold text-blue-600">${Math.round(doc.score * 100)}%</span>
-                    </div>
-                    <div class="text-sm font-medium text-gray-900 mb-1">${doc.section}</div>
-                    <p class="text-xs text-gray-600 line-clamp-3">${doc.text}</p>
-                </div>
-            `).join('');
-        }
-
-        function displayCitations(citations) {
-            citationsBox.classList.remove('hidden');
-            citationsList.innerHTML = citations.map((citation, idx) => `
-                <div class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                    <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        ${idx + 1}
-                    </div>
-                    <div class="text-sm">
-                        <div class="font-medium text-gray-900">${citation.doc_id}</div>
-                        <div class="text-gray-600">${citation.section} • Page ${citation.page}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function displayMetadata(data) {
-            confidenceBadge.classList.remove('hidden');
-            confidenceText.textContent = `${Math.round(data.confidence * 100)}%`;
-            
-            metadataBox.classList.remove('hidden');
-            riskLevel.textContent = data.risk_level;
-            riskLevel.className = `font-medium ${
-                data.risk_level === 'HIGH' ? 'text-red-600' :
-                data.risk_level === 'MEDIUM' ? 'text-yellow-600' :
-                'text-green-600'
-            }`;
-            latency.textContent = data.latency_ms;
-        }
-
-        function showError(message) {
-            errorBox.classList.remove('hidden');
-            errorMessage.textContent = message;
-        }
-
-        function resetState() {
-            errorBox.classList.add('hidden');
-            progressBar.classList.remove('hidden');
-            answerBox.innerHTML = '<div class="text-center py-8 text-gray-400"><div class="animate-spin text-3xl mb-2">⚙️</div><p>Processing...</p></div>';
-            confidenceBadge.classList.add('hidden');
-            citationsBox.classList.add('hidden');
-            metadataBox.classList.add('hidden');
-            documentsBox.innerHTML = '<div class="text-center py-8 text-gray-400"><p class="text-sm">Searching...</p></div>';
-            progressFill.style.width = '0%';
-        }
-
-        function updateUI() {
-            if (isStreaming) {
-                queryBtn.classList.add('hidden');
-                cancelBtn.classList.remove('hidden');
-                queryInput.disabled = true;
-            } else {
-                queryBtn.classList.remove('hidden');
-                cancelBtn.classList.add('hidden');
-                queryInput.disabled = false;
-                progressBar.classList.add('hidden');
-            }
-        }
-    </script>
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
 </body>
 </html>

@@ -2,23 +2,32 @@ import asyncio
 import json
 import logging
 import os
+import time
 from typing import List, Optional
 
+import faiss
+import numpy as np
 import yaml
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from openai import OpenAI
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
 
+from agents.compliance_agent import ComplianceAgent
+from agents.explanation_agent import ExplanationAgent
+from agents.retriever_agent import RetrieverAgent
 from auth.crud import authenticate_user, create_user, get_user_by_username
 from auth.database import Base, engine, get_db
 from auth.dependencies import get_current_user
 from auth.jwt import create_access_token
 from auth.models import User
 from auth.schemas import Token, UserCreate, UserResponse
+from indexing.vector_store import FaissVectorStore
 from monitoring.audit_logger import AuditLogger
 
 load_dotenv()
@@ -63,9 +72,65 @@ app.add_middleware(
 )
 
 
+_embedder: Optional[SentenceTransformer] = None
+_vector_store: Optional[FaissVectorStore] = None
+_retriever: Optional[RetrieverAgent] = None
+_compliance: Optional[ComplianceAgent] = None
+_explanation: Optional[ExplanationAgent] = None
+
+
 @app.on_event("startup")
-def _create_tables() -> None:
+def _startup() -> None:
+    global _embedder, _vector_store, _retriever, _compliance, _explanation
+
     Base.metadata.create_all(bind=engine)
+
+    _agents_cfg = _cfg.get("agents", {})
+    _embed_cfg = _cfg.get("embeddings", {})
+    _features_dir = _cfg.get("data", {}).get("features_dir", "data/features")
+
+    # --- Embedder ---
+    model_name: str = _embed_cfg.get("model", "sentence-transformers/all-MiniLM-L6-v2")
+    logger.info("Loading embedding model: %s", model_name)
+    _embedder = SentenceTransformer(model_name)
+
+    # --- Vector store ---
+    index_path = os.path.join(_features_dir, "faiss.index")
+    chunks_path = os.path.join(_features_dir, "chunks_metadata.json")
+    if os.path.exists(index_path) and os.path.exists(chunks_path):
+        logger.info("Loading FAISS index from %s", index_path)
+        raw_index = faiss.read_index(index_path)
+        dim = raw_index.d
+        _vector_store = FaissVectorStore(dim=dim)
+        _vector_store._index = raw_index
+        with open(chunks_path, encoding="utf-8") as f:
+            _vector_store._chunks = json.load(f)
+        logger.info("Loaded %d vectors into vector store", _vector_store.ntotal)
+    else:
+        logger.warning(
+            "FAISS index not found at %s — run embed_all_documents.py first. "
+            "Retrieval will return empty results.",
+            index_path,
+        )
+        _vector_store = FaissVectorStore(dim=384)
+
+    # --- Agents ---
+    top_k: int = _agents_cfg.get("retriever", {}).get("top_k", 5)
+    _retriever = RetrieverAgent(vector_store=_vector_store, top_k=top_k)
+    _compliance = ComplianceAgent(regulations=["GDPR", "MiFID II", "PSD2", "Basel III", "BaFin"])
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        _exp_cfg = _agents_cfg.get("explanation", {})
+        llm_client = OpenAI(api_key=api_key)
+        _explanation = ExplanationAgent(
+            llm_client=llm_client,
+            model=_exp_cfg.get("model", "gpt-4o-mini"),
+            temperature=_exp_cfg.get("temperature", 0.0),
+        )
+        logger.info("ExplanationAgent ready with model %s", _exp_cfg.get("model", "gpt-4o-mini"))
+    else:
+        logger.error("OPENAI_API_KEY not set — ExplanationAgent will raise on queries")
 
 
 # ---------------------------------------------------------------------------
@@ -158,40 +223,81 @@ async def query_stream(
     username = current_user.username if current_user else "anonymous"
     audit.log_query(username, request.query, {"top_k": request.top_k})
 
+    query = request.query
+
     async def generate():
+        t0 = time.monotonic()
+
         yield f"data: {json.dumps({'type': 'status', 'message': 'Processing query...', 'step': 1, 'total': 4})}\n\n"
-        await asyncio.sleep(0.5)
 
+        # --- Step 1: embed query (blocking; run in thread pool) ---
         yield f"data: {json.dumps({'type': 'status', 'message': 'Generating embedding...', 'step': 2, 'total': 4})}\n\n"
-        await asyncio.sleep(0.5)
+        loop = asyncio.get_event_loop()
+        query_embedding: np.ndarray = await loop.run_in_executor(
+            None, lambda: _embedder.encode([query], convert_to_numpy=True)[0]
+        )
 
+        # --- Step 2: retrieve ---
         yield f"data: {json.dumps({'type': 'status', 'message': 'Searching documents...', 'step': 3, 'total': 4})}\n\n"
-        await asyncio.sleep(0.5)
+        retrieval_result = await loop.run_in_executor(
+            None,
+            lambda: _retriever.execute(
+                {"query": query, "query_embedding": query_embedding}
+            ),
+        )
+        chunks = retrieval_result["retrieved_chunks"]
+        retrieval_confidence = retrieval_result["confidence"]
 
-        docs = [
+        docs_payload = [
             {
-                "doc_id": "psd2_2015",
-                "section": "Article 97",
-                "score": 0.92,
-                "text": "Payment service providers shall apply strong customer authentication...",
+                "doc_id": c.get("doc_id", ""),
+                "section": c.get("section", ""),
+                "score": round(c.get("score", 0.0), 4),
+                "text": c.get("text", "")[:300],
             }
+            for c in chunks
         ]
-        yield f"data: {json.dumps({'type': 'retrieval', 'documents': docs})}\n\n"
+        yield f"data: {json.dumps({'type': 'retrieval', 'documents': docs_payload})}\n\n"
 
+        # --- Step 3: compliance check ---
+        compliance_result = _compliance.execute({"query": query})
+
+        # --- Step 4: explanation ---
         yield f"data: {json.dumps({'type': 'status', 'message': 'Generating answer...', 'step': 4, 'total': 4})}\n\n"
+        explanation_result = await loop.run_in_executor(
+            None,
+            lambda: _explanation.execute(
+                {
+                    "query": query,
+                    "retrieved_chunks": chunks,
+                    "compliance": compliance_result,
+                    "retrieval_confidence": retrieval_confidence,
+                }
+            ),
+        )
 
-        answer = "Yes, PSD2 Article 97 requires strong customer authentication for electronic payment transactions."
-        for i, word in enumerate(answer.split()):
+        answer: str = explanation_result["answer"]
+        citations = explanation_result["citations"]
+        confidence = explanation_result["confidence"]
+        potential_risks = explanation_result["potential_risks"]
+
+        # Stream answer tokens
+        words = answer.split()
+        for i, word in enumerate(words):
             yield f"data: {json.dumps({'type': 'token', 'token': word + ' ', 'index': i})}\n\n"
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.02)
 
+        latency_ms = round((time.monotonic() - t0) * 1000)
         result = {
             "type": "complete",
             "answer": answer,
-            "citations": [{"doc_id": "psd2_2015", "section": "Article 97", "page": 124}],
-            "confidence": 0.89,
-            "risk_level": "MEDIUM",
-            "latency_ms": 2100,
+            "citations": citations,
+            "confidence": round(confidence, 4),
+            "risk_level": compliance_result["risk_level"],
+            "requires_review": compliance_result["requires_review"],
+            "potential_risks": potential_risks,
+            "regulatory_flags": compliance_result["regulatory_flags"],
+            "latency_ms": latency_ms,
         }
         yield f"data: {json.dumps(result)}\n\n"
         yield "data: [DONE]\n\n"

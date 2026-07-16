@@ -2,6 +2,32 @@
 
 An AI system that ingests regulatory and financial PDFs, answers compliance questions, and produces fully traceable, cited explanations — built for risk and compliance teams who need auditability alongside accuracy.
 
+<details>
+<summary><strong>▶ Project Demo — click to expand</strong></summary>
+<br>
+
+The demo below animates the full pipeline end-to-end across three real regulatory queries. It runs in your browser with no setup required.
+
+**[→ Open Live Demo](https://asmitabhat30.github.io/Explainable-LLM-Agent-for-Financial-Document-Intelligence/demo/)**
+
+What the demo shows (~60 second loop):
+
+| Query | Regulation | Outcome |
+|---|---|---|
+| Minimum capital requirements for commercial banks | Basel III · CRR | Cited answer, no review flag |
+| Does GDPR's right to erasure apply to transaction records? | GDPR · PSD2 · BaFin | Cited answer + `requires_review: true` |
+| Position limits for commodity derivatives | MiFID II · CRR | Cited answer, no review flag |
+
+Each query animates the full agent pipeline in real time:
+- **RetrieverAgent** — FAISS vector search, top-k chunk retrieval with similarity scores
+- **ComplianceAgent** — regulation matching, `requires_review` flag evaluation
+- **ExplanationAgent** — streamed cited answer with source attribution
+- **Audit log** — live `log_decision()` trace on the right panel
+
+> Source: [`demo/index.html`](demo/index.html)
+
+</details>
+
 ---
 
 ## Overview

@@ -2,6 +2,8 @@
 
 An AI system that ingests regulatory and financial PDFs, answers compliance questions, and produces fully traceable, cited explanations — built for risk and compliance teams who need auditability alongside accuracy.
 
+![Pipeline Demo](demo/demo.svg)
+
 <details>
 <summary><strong>▶ Project Demo — click to expand</strong></summary>
 <br>

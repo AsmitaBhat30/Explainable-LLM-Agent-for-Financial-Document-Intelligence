@@ -1,0 +1,317 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480">
+<defs><style>
+.m{font-family:'SF Mono','Cascadia Code','Fira Code','Consolas',monospace}
+.s{font-family:-apple-system,'Segoe UI',system-ui,sans-serif}
+
+/* 45s cycle — 3 × 15s scenes
+   Scene1: 0-33%   Scene2: 33-67%   Scene3: 67-100%
+   Within each scene:
+   query@+2%  ret_on@+4%  ret_off@+7%  comp_on@+7%  comp_off@+9%
+   exp_on@+9% exp_off@+12% ans1@+12% ans2@+15% ans3@+19% cites@+23% out@+30% */
+
+@keyframes lp{0%,100%{opacity:1}50%{opacity:.2}}
+.lp{animation:lp 1.5s ease-in-out infinite}
+
+/* Scene element visibility */
+@keyframes s1  {0%,1.9%,30.1%,100%{opacity:0}2%,30%{opacity:1}}
+@keyframes s1r {0%,3.9%,30.1%,100%{opacity:0}4%,30%{opacity:1}}
+@keyframes s1c {0%,6.9%,30.1%,100%{opacity:0}7%,30%{opacity:1}}
+@keyframes s1e {0%,8.9%,30.1%,100%{opacity:0}9%,30%{opacity:1}}
+@keyframes s1a1{0%,11.9%,30.1%,100%{opacity:0}12%,30%{opacity:1}}
+@keyframes s1a2{0%,14.9%,30.1%,100%{opacity:0}15%,30%{opacity:1}}
+@keyframes s1a3{0%,18.9%,30.1%,100%{opacity:0}19%,30%{opacity:1}}
+@keyframes s1ci{0%,22.9%,30.1%,100%{opacity:0}23%,30%{opacity:1}}
+
+@keyframes s2  {0%,34.9%,63.1%,100%{opacity:0}35%,63%{opacity:1}}
+@keyframes s2r {0%,36.9%,63.1%,100%{opacity:0}37%,63%{opacity:1}}
+@keyframes s2c {0%,39.9%,63.1%,100%{opacity:0}40%,63%{opacity:1}}
+@keyframes s2e {0%,41.9%,63.1%,100%{opacity:0}42%,63%{opacity:1}}
+@keyframes s2a1{0%,44.9%,63.1%,100%{opacity:0}45%,63%{opacity:1}}
+@keyframes s2a2{0%,47.9%,63.1%,100%{opacity:0}48%,63%{opacity:1}}
+@keyframes s2a3{0%,51.9%,63.1%,100%{opacity:0}52%,63%{opacity:1}}
+@keyframes s2ci{0%,55.9%,63.1%,100%{opacity:0}56%,63%{opacity:1}}
+@keyframes rv  {0%,55.9%,63.1%,100%{opacity:0}56%,63%{opacity:1}}
+
+@keyframes s3  {0%,67.9%,96.1%,100%{opacity:0}68%,96%{opacity:1}}
+@keyframes s3r {0%,69.9%,96.1%,100%{opacity:0}70%,96%{opacity:1}}
+@keyframes s3c {0%,72.9%,96.1%,100%{opacity:0}73%,96%{opacity:1}}
+@keyframes s3e {0%,75.9%,96.1%,100%{opacity:0}76%,96%{opacity:1}}
+@keyframes s3a1{0%,78.9%,96.1%,100%{opacity:0}79%,96%{opacity:1}}
+@keyframes s3a2{0%,81.9%,96.1%,100%{opacity:0}82%,96%{opacity:1}}
+@keyframes s3a3{0%,84.9%,96.1%,100%{opacity:0}85%,96%{opacity:1}}
+@keyframes s3ci{0%,88.9%,96.1%,100%{opacity:0}89%,96%{opacity:1}}
+
+/* Agent indicator colors */
+@keyframes ri{
+  0%,3.9%{fill:#2A4460}4%,6.9%{fill:#3B9EFF}7%,30%{fill:#22C55E}
+  30.1%,36.9%{fill:#2A4460}37%,39.9%{fill:#3B9EFF}40%,63%{fill:#22C55E}
+  63.1%,69.9%{fill:#2A4460}70%,72.9%{fill:#3B9EFF}73%,96%{fill:#22C55E}
+  96.1%,100%{fill:#2A4460}}
+@keyframes ci2{
+  0%,6.9%{fill:#2A4460}7%,8.9%{fill:#3B9EFF}9%,30%{fill:#22C55E}
+  30.1%,39.9%{fill:#2A4460}40%,41.9%{fill:#3B9EFF}42%,63%{fill:#22C55E}
+  63.1%,72.9%{fill:#2A4460}73%,75.9%{fill:#3B9EFF}76%,96%{fill:#22C55E}
+  96.1%,100%{fill:#2A4460}}
+@keyframes ei{
+  0%,8.9%{fill:#2A4460}9%,11.9%{fill:#3B9EFF}12%,30%{fill:#22C55E}
+  30.1%,41.9%{fill:#2A4460}42%,44.9%{fill:#3B9EFF}45%,63%{fill:#22C55E}
+  63.1%,75.9%{fill:#2A4460}76%,78.9%{fill:#3B9EFF}79%,96%{fill:#22C55E}
+  96.1%,100%{fill:#2A4460}}
+
+/* Agent row backgrounds */
+@keyframes rrb{
+  0%,3.9%,30.1%,36.9%,63.1%,69.9%,96.1%,100%{fill:transparent;stroke:#18334F}
+  4%,6.9%{fill:#0A1E33;stroke:#1E3F60}7%,30%{fill:#061A0B;stroke:#0D3318}
+  37%,39.9%{fill:#0A1E33;stroke:#1E3F60}40%,63%{fill:#061A0B;stroke:#0D3318}
+  70%,72.9%{fill:#0A1E33;stroke:#1E3F60}73%,96%{fill:#061A0B;stroke:#0D3318}}
+@keyframes crb{
+  0%,6.9%,30.1%,39.9%,63.1%,72.9%,96.1%,100%{fill:transparent;stroke:#18334F}
+  7%,8.9%{fill:#0A1E33;stroke:#1E3F60}9%,30%{fill:#061A0B;stroke:#0D3318}
+  40%,41.9%{fill:#0A1E33;stroke:#1E3F60}42%,63%{fill:#061A0B;stroke:#0D3318}
+  73%,75.9%{fill:#0A1E33;stroke:#1E3F60}76%,96%{fill:#061A0B;stroke:#0D3318}}
+@keyframes erb{
+  0%,8.9%,30.1%,41.9%,63.1%,75.9%,96.1%,100%{fill:transparent;stroke:#18334F}
+  9%,11.9%{fill:#0A1E33;stroke:#1E3F60}12%,30%{fill:#061A0B;stroke:#0D3318}
+  42%,44.9%{fill:#0A1E33;stroke:#1E3F60}45%,63%{fill:#061A0B;stroke:#0D3318}
+  76%,78.9%{fill:#0A1E33;stroke:#1E3F60}79%,96%{fill:#061A0B;stroke:#0D3318}}
+
+/* Agent name colors */
+@keyframes rn{
+  0%,3.9%,30.1%,36.9%,63.1%,69.9%,96.1%,100%{fill:#4E7094}
+  4%,30%{fill:#C8DCF0}37%,63%{fill:#C8DCF0}70%,96%{fill:#C8DCF0}}
+@keyframes cn{
+  0%,6.9%,30.1%,39.9%,63.1%,72.9%,96.1%,100%{fill:#4E7094}
+  7%,30%{fill:#C8DCF0}40%,63%{fill:#C8DCF0}73%,96%{fill:#C8DCF0}}
+@keyframes en{
+  0%,8.9%,30.1%,41.9%,63.1%,75.9%,96.1%,100%{fill:#4E7094}
+  9%,30%{fill:#C8DCF0}42%,63%{fill:#C8DCF0}76%,96%{fill:#C8DCF0}}
+
+/* Progress bar */
+@keyframes pb{
+  0%,1.9%{width:0}4%{width:44px}7%{width:110px}9%{width:158px}
+  12%{width:204px}23%{width:278px}30%{width:294px}
+  30.1%,34.9%{width:0}37%{width:44px}40%{width:110px}42%{width:158px}
+  45%{width:204px}56%{width:278px}63%{width:294px}
+  63.1%,67.9%{width:0}70%{width:44px}73%{width:110px}76%{width:158px}
+  79%{width:204px}89%{width:278px}96%{width:294px}96.1%,100%{width:0}}
+
+/* Scenario dots */
+@keyframes d0{0%,30%{fill:#3B9EFF}30.1%,100%{fill:#2A4460}}
+@keyframes d1{0%,33.4%,63.1%,100%{fill:#2A4460}33.5%,63%{fill:#3B9EFF}}
+@keyframes d2{0%,66.9%,96.1%,100%{fill:#2A4460}67%,96%{fill:#3B9EFF}}
+
+.A45{animation-duration:45s;animation-iteration-count:infinite;animation-timing-function:linear}
+</style></defs>
+
+<!-- ── Background ── -->
+<rect width="900" height="480" fill="#060F1C"/>
+
+<!-- ── Top bar ── -->
+<rect width="900" height="44" fill="#0C1E33"/>
+<rect y="44" width="900" height="1" fill="#18334F"/>
+<circle cx="20" cy="22" r="4" fill="#3B9EFF"/>
+<text x="32" y="27" class="s" fill="#C8DCF0" font-size="12" font-weight="600">Explainable LLM Agent · Financial Document Intelligence</text>
+<rect x="748" y="13" width="138" height="19" rx="2" fill="#051A10" stroke="#16603A" stroke-width=".5"/>
+<circle cx="763" cy="22" r="3" fill="#22C55E" class="lp"/>
+<text x="771" y="27" class="m" fill="#22C55E" font-size="9" letter-spacing="1">LIVE DEMO · RAG</text>
+
+<!-- ── Panel divider ── -->
+<rect x="556" y="44" width="1" height="436" fill="#18334F"/>
+
+<!-- ── Left panel ── -->
+<rect x="0" y="44" width="556" height="436" fill="#080F1A"/>
+<!-- Query area bg -->
+<rect x="0" y="44" width="556" height="62" fill="#0A1929"/>
+<rect x="0" y="106" width="556" height="1" fill="#18334F"/>
+<text x="18" y="67" class="m" fill="#2A4460" font-size="9" letter-spacing="2">QUERY</text>
+<text x="18" y="90" class="m" fill="#3B9EFF" font-size="14">›</text>
+
+<!-- ── Right panel ── -->
+<rect x="557" y="44" width="343" height="436" fill="#080F1A"/>
+<text x="575" y="67" class="m" fill="#2A4460" font-size="9" letter-spacing="2">AGENT PIPELINE</text>
+<rect x="557" y="70" width="343" height="1" fill="#18334F"/>
+
+<!-- Agent row 1: RetrieverAgent -->
+<rect x="567" y="78" width="323" height="52" rx="4" stroke-width="1" style="animation:rrb 45s linear infinite" fill="transparent" stroke="#18334F"/>
+<circle cx="585" cy="104" r="5" style="animation:ri 45s linear infinite" fill="#2A4460"/>
+<text x="599" y="109" class="m" font-size="11" style="animation:rn 45s linear infinite" fill="#4E7094">RetrieverAgent</text>
+<text x="870" y="109" class="m" font-size="9" fill="#2A4460" text-anchor="end">FAISS</text>
+
+<!-- Agent row 2: ComplianceAgent -->
+<rect x="567" y="140" width="323" height="52" rx="4" stroke-width="1" style="animation:crb 45s linear infinite" fill="transparent" stroke="#18334F"/>
+<circle cx="585" cy="166" r="5" style="animation:ci2 45s linear infinite" fill="#2A4460"/>
+<text x="599" y="171" class="m" font-size="11" style="animation:cn 45s linear infinite" fill="#4E7094">ComplianceAgent</text>
+<text x="870" y="171" class="m" font-size="9" fill="#2A4460" text-anchor="end">LangChain</text>
+
+<!-- Agent row 3: ExplanationAgent -->
+<rect x="567" y="202" width="323" height="52" rx="4" stroke-width="1" style="animation:erb 45s linear infinite" fill="transparent" stroke="#18334F"/>
+<circle cx="585" cy="228" r="5" style="animation:ei 45s linear infinite" fill="#2A4460"/>
+<text x="599" y="233" class="m" font-size="11" style="animation:en 45s linear infinite" fill="#4E7094">ExplanationAgent</text>
+<text x="870" y="233" class="m" font-size="9" fill="#2A4460" text-anchor="end">GPT-4o</text>
+
+<!-- Right panel section divider -->
+<rect x="557" y="264" width="343" height="1" fill="#18334F"/>
+<text x="575" y="283" class="m" fill="#2A4460" font-size="9" letter-spacing="2">AUDIT LOG</text>
+
+<!-- ── Scene 1 — Basel III ─────────────────────────────────── -->
+<g style="animation:s1 45s linear infinite;opacity:0">
+  <!-- Query -->
+  <text x="34" y="81" class="m" fill="#C8DCF0" font-size="11">What are the minimum capital requirements</text>
+  <text x="34" y="97" class="m" fill="#C8DCF0" font-size="11">under Basel III for commercial banks?</text>
+</g>
+<!-- Retriever status -->
+<text x="18" y="123" class="m" font-size="10" style="animation:s1r 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Retrieved 4 chunks · top score </tspan><tspan fill="#C8DCF0">0.94</tspan>
+</text>
+<!-- Compliance status -->
+<text x="18" y="143" class="m" font-size="10" style="animation:s1c 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Matched: Basel III · CRR — </tspan><tspan fill="#22C55E">no PII</tspan>
+</text>
+<!-- Explanation status -->
+<text x="18" y="163" class="m" font-size="10" style="animation:s1e 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Response generated with </tspan><tspan fill="#C8DCF0">3 citations</tspan>
+</text>
+
+<!-- Answer block -->
+<g style="animation:s1a1 45s linear infinite;opacity:0">
+  <rect x="12" y="178" width="532" height="4" rx="2" fill="#0C1E33"/>
+  <rect x="12" y="186" width="532" height="118" rx="5" fill="#0C1E33" stroke="#18334F" stroke-width="1"/>
+  <text x="24" y="203" class="m" fill="#2A4460" font-size="8" letter-spacing="2">RESPONSE</text>
+</g>
+<text x="24" y="220" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s1a1 45s linear infinite;opacity:0">Under Basel III, banks must maintain a minimum CET1 ratio of 4.5%,</text>
+<text x="24" y="238" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s1a2 45s linear infinite;opacity:0">Tier 1 capital ratio of 6%, and total capital ratio of 8%. A Capital</text>
+<text x="24" y="256" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s1a3 45s linear infinite;opacity:0">Conservation Buffer of 2.5% raises the effective minimum CET1 to 7%.</text>
+
+<!-- Citations -->
+<g style="animation:s1ci 45s linear infinite;opacity:0">
+  <rect x="24" y="273" width="100" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="74" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">Basel III §4.1</text>
+  <rect x="132" y="273" width="100" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="182" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">Basel III §6.2</text>
+  <rect x="240" y="273" width="82" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="281" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">CRR Art.92</text>
+</g>
+
+<!-- Audit log scene 1 -->
+<text x="575" y="302" class="m" font-size="9" style="animation:s1r 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:01 </tspan><tspan fill="#3B9EFF">[RET] </tspan><tspan fill="#4E7094">FAISS query → 4 chunks</tspan>
+</text>
+<text x="575" y="318" class="m" font-size="9" style="animation:s1c 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:03 </tspan><tspan fill="#A78BFA">[CMP] </tspan><tspan fill="#4E7094">Basel III matched</tspan>
+</text>
+<text x="575" y="334" class="m" font-size="9" style="animation:s1e 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:04 </tspan><tspan fill="#34D399">[EXP] </tspan><tspan fill="#4E7094">LLM call: gpt-4o-mini</tspan>
+</text>
+<text x="575" y="350" class="m" font-size="9" style="animation:s1ci 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:07 </tspan><tspan fill="#F59E0B">[AUD] </tspan><tspan fill="#4E7094">3 citations attached</tspan>
+</text>
+
+<!-- ── Scene 2 — GDPR ─────────────────────────────────────── -->
+<g style="animation:s2 45s linear infinite;opacity:0">
+  <text x="34" y="81" class="m" fill="#C8DCF0" font-size="11">Does GDPR&#x2019;s right to erasure apply to</text>
+  <text x="34" y="97" class="m" fill="#C8DCF0" font-size="11">financial transaction records?</text>
+</g>
+<text x="18" y="123" class="m" font-size="10" style="animation:s2r 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Retrieved 4 chunks · top score </tspan><tspan fill="#C8DCF0">0.96</tspan>
+</text>
+<text x="18" y="143" class="m" font-size="10" style="animation:s2c 45s linear infinite;opacity:0">
+  <tspan fill="#F59E0B">⚠ </tspan><tspan fill="#4E7094">GDPR domain — </tspan><tspan fill="#F59E0B">requires_review: true</tspan>
+</text>
+<text x="18" y="163" class="m" font-size="10" style="animation:s2e 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Response generated with </tspan><tspan fill="#C8DCF0">4 citations</tspan>
+</text>
+<g style="animation:s2a1 45s linear infinite;opacity:0">
+  <rect x="12" y="178" width="532" height="4" rx="2" fill="#0C1E33"/>
+  <rect x="12" y="186" width="532" height="118" rx="5" fill="#0C1E33" stroke="#18334F" stroke-width="1"/>
+  <text x="24" y="203" class="m" fill="#2A4460" font-size="8" letter-spacing="2">RESPONSE</text>
+</g>
+<text x="24" y="220" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s2a1 45s linear infinite;opacity:0">GDPR Art. 17 right to erasure has exceptions for legal retention.</text>
+<text x="24" y="238" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s2a2 45s linear infinite;opacity:0">AMLD5 mandates 5-year retention; BaFin requires up to 10 years</text>
+<text x="24" y="256" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s2a3 45s linear infinite;opacity:0">for certain records. Erasure requests require legal review first.</text>
+<g style="animation:s2ci 45s linear infinite;opacity:0">
+  <rect x="24" y="273" width="88" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="68" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">GDPR Art.17</text>
+  <rect x="120" y="273" width="82" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="161" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">GDPR Art.6</text>
+  <rect x="210" y="273" width="90" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="255" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">PSD2 Art.94</text>
+  <rect x="308" y="273" width="76" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="346" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">BaFin §154</text>
+</g>
+<!-- requires_review flag -->
+<g style="animation:rv 45s linear infinite;opacity:0">
+  <rect x="24" y="299" width="242" height="18" rx="3" fill="#1A0E00" stroke="#7A4A00" stroke-width="1"/>
+  <text x="34" y="311" class="m" fill="#F59E0B" font-size="9">⚠  requires_review: true — human oversight</text>
+</g>
+<text x="575" y="302" class="m" font-size="9" style="animation:s2r 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:01 </tspan><tspan fill="#3B9EFF">[RET] </tspan><tspan fill="#4E7094">FAISS query → 4 chunks</tspan>
+</text>
+<text x="575" y="318" class="m" font-size="9" style="animation:s2c 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:03 </tspan><tspan fill="#A78BFA">[CMP] </tspan><tspan fill="#F59E0B">GDPR — PII flag raised</tspan>
+</text>
+<text x="575" y="334" class="m" font-size="9" style="animation:s2e 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:04 </tspan><tspan fill="#34D399">[EXP] </tspan><tspan fill="#4E7094">LLM call: gpt-4o-mini</tspan>
+</text>
+<text x="575" y="350" class="m" font-size="9" style="animation:s2ci 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:08 </tspan><tspan fill="#F59E0B">[AUD] </tspan><tspan fill="#F59E0B">requires_review logged</tspan>
+</text>
+
+<!-- ── Scene 3 — MiFID II ──────────────────────────────────── -->
+<g style="animation:s3 45s linear infinite;opacity:0">
+  <text x="34" y="81" class="m" fill="#C8DCF0" font-size="11">What position limits apply under MiFID II</text>
+  <text x="34" y="97" class="m" fill="#C8DCF0" font-size="11">for commodity derivatives?</text>
+</g>
+<text x="18" y="123" class="m" font-size="10" style="animation:s3r 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Retrieved 4 chunks · top score </tspan><tspan fill="#C8DCF0">0.95</tspan>
+</text>
+<text x="18" y="143" class="m" font-size="10" style="animation:s3c 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Matched: MiFID II · CRR — </tspan><tspan fill="#22C55E">no PII</tspan>
+</text>
+<text x="18" y="163" class="m" font-size="10" style="animation:s3e 45s linear infinite;opacity:0">
+  <tspan fill="#22C55E">✓ </tspan><tspan fill="#4E7094">Response generated with </tspan><tspan fill="#C8DCF0">3 citations</tspan>
+</text>
+<g style="animation:s3a1 45s linear infinite;opacity:0">
+  <rect x="12" y="178" width="532" height="4" rx="2" fill="#0C1E33"/>
+  <rect x="12" y="186" width="532" height="118" rx="5" fill="#0C1E33" stroke="#18334F" stroke-width="1"/>
+  <text x="24" y="203" class="m" fill="#2A4460" font-size="8" letter-spacing="2">RESPONSE</text>
+</g>
+<text x="24" y="220" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s3a1 45s linear infinite;opacity:0">MiFID II Art. 57 requires position limits on commodity derivatives.</text>
+<text x="24" y="238" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s3a2 45s linear infinite;opacity:0">Spot-month limits are set at 25% of deliverable supply; other-month</text>
+<text x="24" y="256" class="m" fill="#C8DCF0" font-size="10.5" style="animation:s3a3 45s linear infinite;opacity:0">limits at 25% of open interest. Hedging exemptions apply.</text>
+<g style="animation:s3ci 45s linear infinite;opacity:0">
+  <rect x="24" y="273" width="104" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="76" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">MiFID II Art.57</text>
+  <rect x="136" y="273" width="104" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="188" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">MiFID II RTS 21</text>
+  <rect x="248" y="273" width="90" height="18" rx="3" fill="#0A1E35" stroke="#1A3F65" stroke-width="1"/>
+  <text x="293" y="285" class="m" fill="#3B9EFF" font-size="9" text-anchor="middle">CRR Art.355</text>
+</g>
+<text x="575" y="302" class="m" font-size="9" style="animation:s3r 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:01 </tspan><tspan fill="#3B9EFF">[RET] </tspan><tspan fill="#4E7094">FAISS query → 4 chunks</tspan>
+</text>
+<text x="575" y="318" class="m" font-size="9" style="animation:s3c 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:03 </tspan><tspan fill="#A78BFA">[CMP] </tspan><tspan fill="#4E7094">MiFID II matched</tspan>
+</text>
+<text x="575" y="334" class="m" font-size="9" style="animation:s3e 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:04 </tspan><tspan fill="#34D399">[EXP] </tspan><tspan fill="#4E7094">LLM call: gpt-4o-mini</tspan>
+</text>
+<text x="575" y="350" class="m" font-size="9" style="animation:s3ci 45s linear infinite;opacity:0">
+  <tspan fill="#2A4460">00:07 </tspan><tspan fill="#F59E0B">[AUD] </tspan><tspan fill="#4E7094">3 citations attached</tspan>
+</text>
+
+<!-- ── Progress bar ── -->
+<rect x="557" y="370" width="343" height="1" fill="#18334F"/>
+<rect x="567" y="381" width="294" height="3" rx="1" fill="#0C1E33"/>
+<rect x="567" y="381" height="3" rx="1" fill="#3B9EFF" style="animation:pb 45s linear infinite;width:0"/>
+
+<!-- ── Scenario dots ── -->
+<circle cx="735" cy="400" r="4" style="animation:d0 45s linear infinite;fill:#3B9EFF"/>
+<circle cx="751" cy="400" r="4" style="animation:d1 45s linear infinite;fill:#2A4460"/>
+<circle cx="767" cy="400" r="4" style="animation:d2 45s linear infinite;fill:#2A4460"/>
+<text x="735" y="418" class="m" fill="#2A4460" font-size="8" text-anchor="middle">Basel III</text>
+<text x="751" y="418" class="m" fill="#2A4460" font-size="8" text-anchor="middle">GDPR</text>
+<text x="767" y="418" class="m" fill="#2A4460" font-size="8" text-anchor="middle">MiFID</text>
+
+<!-- ── Bottom border ── -->
+<rect x="0" y="478" width="900" height="2" fill="#18334F"/>
+</svg>

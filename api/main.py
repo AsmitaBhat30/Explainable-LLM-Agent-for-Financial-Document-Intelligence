@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from openai import OpenAI
+from openai import OpenAI, RateLimitError, APIStatusError
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
@@ -225,6 +225,12 @@ async def query_stream(
 
     query = request.query
 
+    if _retriever is None or _compliance is None or _explanation is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Pipeline not ready — check server startup logs (OPENAI_API_KEY set? FAISS index built?)",
+        )
+
     async def generate():
         t0 = time.monotonic()
 
@@ -264,17 +270,26 @@ async def query_stream(
 
         # --- Step 4: explanation ---
         yield f"data: {json.dumps({'type': 'status', 'message': 'Generating answer...', 'step': 4, 'total': 4})}\n\n"
-        explanation_result = await loop.run_in_executor(
-            None,
-            lambda: _explanation.execute(
-                {
-                    "query": query,
-                    "retrieved_chunks": chunks,
-                    "compliance": compliance_result,
-                    "retrieval_confidence": retrieval_confidence,
-                }
-            ),
-        )
+        try:
+            explanation_result = await loop.run_in_executor(
+                None,
+                lambda: _explanation.execute(
+                    {
+                        "query": query,
+                        "retrieved_chunks": chunks,
+                        "compliance": compliance_result,
+                        "retrieval_confidence": retrieval_confidence,
+                    }
+                ),
+            )
+        except RateLimitError:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'OpenAI quota exceeded — add credits at platform.openai.com/account/billing'})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        except APIStatusError as exc:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'OpenAI API error {exc.status_code}: {exc.message}'})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
 
         answer: str = explanation_result["answer"]
         citations = explanation_result["citations"]

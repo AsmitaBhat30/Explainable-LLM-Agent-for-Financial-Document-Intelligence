@@ -715,6 +715,10 @@ function handleEvent(ev) {
 
       setProgress('Complete', 100);
       break;
+
+    case 'error':
+      showError(ev.message || 'An unexpected error occurred');
+      break;
   }
 }
 

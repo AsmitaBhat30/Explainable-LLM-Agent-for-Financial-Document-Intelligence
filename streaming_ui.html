@@ -226,6 +226,46 @@ html, body {
   background: color-mix(in srgb,var(--accent) 10%,transparent);
   border: 1px solid color-mix(in srgb,var(--accent) 28%,transparent);
   color: var(--accent);
+  cursor: pointer;
+}
+.cite-chip:hover {
+  background: color-mix(in srgb,var(--accent) 20%,transparent);
+  border-color: var(--accent);
+}
+
+/* Citation modal */
+.cite-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65); z-index: 100;
+  align-items: center; justify-content: center;
+}
+.cite-modal-overlay.open { display: flex; }
+.cite-modal {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; width: min(680px, 92vw); max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cite-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border); gap: 1rem;
+}
+.cite-modal-title {
+  font-family: var(--mono); font-size: 0.75rem; color: var(--accent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cite-modal-meta {
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted); white-space: nowrap;
+}
+.cite-modal-close {
+  background: none; border: none; color: var(--muted); font-size: 1.1rem;
+  cursor: pointer; line-height: 1; padding: 0.2em 0.4em; border-radius: 3px;
+  flex-shrink: 0;
+}
+.cite-modal-close:hover { color: var(--text); background: var(--dim); }
+.cite-modal-body {
+  padding: 1.1rem; overflow-y: auto;
+  font-family: var(--mono); font-size: 0.75rem; line-height: 1.7;
+  color: var(--text); white-space: pre-wrap; word-break: break-word;
 }
 
 /* Review flag */
@@ -686,13 +726,15 @@ function handleEvent(ev) {
       answerBlock.style.display = 'block';
       answerText.textContent = ev.answer || streamingAnswer;
 
-      // Citations
+      // Citations — each chip opens a source-text modal on click
       if (ev.citations && ev.citations.length) {
         citationsRow.innerHTML = '';
         ev.citations.forEach(c => {
-          const chip = document.createElement('span');
+          const chip = document.createElement('button');
           chip.className = 'cite-chip';
+          chip.title = 'Click to view source passage';
           chip.textContent = c.doc_id + (c.section ? ' · ' + c.section : '');
+          chip.addEventListener('click', () => openCiteModal(c));
           citationsRow.appendChild(chip);
         });
       }
@@ -732,6 +774,39 @@ function showError(msg) {
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// Citation modal
+function openCiteModal(citation) {
+  const overlay = document.getElementById('citeModalOverlay');
+  document.getElementById('citeModalTitle').textContent =
+    citation.doc_id + (citation.section ? '  ·  ' + citation.section : '');
+  const pages = citation.page_range && citation.page_range.length
+    ? 'Pages ' + citation.page_range.join('–')
+    : '';
+  const score = citation.score !== undefined ? 'Relevance: ' + Math.round(citation.score * 100) + '%' : '';
+  document.getElementById('citeModalMeta').textContent = [pages, score].filter(Boolean).join('   ');
+  document.getElementById('citeModalBody').textContent =
+    citation.text || '(No source text available for this citation)';
+  overlay.classList.add('open');
+}
+
+function closeCiteModal() {
+  document.getElementById('citeModalOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCiteModal(); });
 </script>
+
+<!-- Citation source-text modal -->
+<div class="cite-modal-overlay" id="citeModalOverlay" onclick="if(event.target===this)closeCiteModal()">
+  <div class="cite-modal" role="dialog" aria-modal="true">
+    <div class="cite-modal-header">
+      <span class="cite-modal-title" id="citeModalTitle"></span>
+      <span class="cite-modal-meta" id="citeModalMeta"></span>
+      <button class="cite-modal-close" onclick="closeCiteModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="cite-modal-body" id="citeModalBody"></div>
+  </div>
+</div>
 </body>
 </html>

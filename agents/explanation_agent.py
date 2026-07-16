@@ -56,18 +56,24 @@ class ExplanationAgent(BaseAgent):
         )
 
     def _create_prompt(self, query: str, context: str, compliance: Dict) -> str:
-        """Create LLM prompt with safety guidelines."""
-        return f"""Answer the following question based ONLY on the provided context.
+        flags = compliance.get("regulatory_flags", [])
+        flags_line = f"Relevant regulations: {', '.join(flags)}.\n" if flags else ""
+        return f"""Answer the question using ONLY the context passages below.
 
-Question: {query}
+RULES — follow exactly:
+1. Answer the question directly. Do NOT generate your own questions.
+2. Do NOT include "Q:" / "A:" markers or any dialogue format.
+3. Every factual claim must be supported by the context. Do not add external knowledge.
+4. If the context does not contain enough information, respond with exactly:
+   "The provided documents do not contain sufficient information to answer this question."
+5. Be concise. No preamble, no filler.
 
-Context:
+{flags_line}QUESTION: {query}
+
+CONTEXT PASSAGES:
 {context}
 
-Compliance notes: {compliance.get('regulatory_flags', [])}
-
-Provide a clear answer with citations. If you cannot answer based on the
-context, say so explicitly."""
+ANSWER:"""
 
     def _call_llm(self, prompt: str) -> str:
         """Call the injected LLM client to generate a grounded answer.
@@ -91,10 +97,11 @@ context, say so explicitly."""
                 {
                     "role": "system",
                     "content": (
-                        "You are a compliance research assistant. Answer "
-                        "strictly from the provided context. Never state a "
-                        "fact that is not present in the context, and say "
-                        "explicitly when the context is insufficient."
+                        "You are a compliance research assistant. "
+                        "Answer questions using ONLY the context passages given by the user. "
+                        "Never generate your own questions. Never use the 'Q:' or 'A:' format. "
+                        "Never add information not present in the context. "
+                        "Be direct and concise."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -104,12 +111,14 @@ context, say so explicitly."""
         return content.strip() if content else ""
 
     def _extract_citations(self, chunks: List[Dict]) -> List[Dict]:
-        """Extract citation information."""
+        """Extract citation information including a text snippet for UI preview."""
         return [
             {
                 "doc_id": c["doc_id"],
                 "section": c["section"],
                 "page_range": c.get("page_range", []),
+                "score": round(float(c.get("score", 0.0)), 4),
+                "text": c.get("text", "")[:600],
             }
             for c in chunks
         ]

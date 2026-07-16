@@ -140,6 +140,13 @@ def _startup() -> None:
         temperature=_exp_cfg.get("temperature", 0.0),
     )
 
+    # Probe the LLM endpoint so startup logs surface connectivity issues immediately
+    try:
+        llm_client.models.list()
+        logger.info("LLM endpoint reachable — model list OK")
+    except Exception as probe_exc:
+        logger.warning("LLM endpoint probe failed: %s", probe_exc)
+
 
 # ---------------------------------------------------------------------------
 # Conditional auth dependency
@@ -296,6 +303,12 @@ async def query_stream(
             return
         except APIStatusError as exc:
             yield f"data: {json.dumps({'type': 'error', 'message': f'OpenAI API error {exc.status_code}: {exc.message}'})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        except Exception as exc:
+            # Catches connection errors (Ollama not running), model-not-found, timeouts, etc.
+            logger.exception("LLM call failed: %s", exc)
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
             yield "data: [DONE]\n\n"
             return
 

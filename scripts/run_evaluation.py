@@ -28,6 +28,7 @@ import os
 import sys
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
@@ -38,6 +39,8 @@ from evaluation.checkpoint import RunCheckpoint
 from evaluation.metrics import EvaluationMetrics
 from evaluation.test_cases import AdversarialTestSuite, TestSetGenerator
 from indexing.vector_store import FaissVectorStore
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

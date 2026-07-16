@@ -119,18 +119,26 @@ def _startup() -> None:
     _retriever = RetrieverAgent(vector_store=_vector_store, top_k=top_k)
     _compliance = ComplianceAgent(regulations=["GDPR", "MiFID II", "PSD2", "Basel III", "BaFin"])
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        _exp_cfg = _agents_cfg.get("explanation", {})
+    _exp_cfg = _agents_cfg.get("explanation", {})
+    llm_base_url = os.getenv("LLM_BASE_URL")  # e.g. http://localhost:11434/v1 for Ollama
+    llm_model = os.getenv("LLM_MODEL") or _exp_cfg.get("model", "gpt-4o-mini")
+    api_key = os.getenv("OPENAI_API_KEY") or "ollama"  # Ollama ignores the key value
+
+    if llm_base_url:
+        llm_client = OpenAI(base_url=llm_base_url, api_key=api_key)
+        logger.info("ExplanationAgent using local LLM at %s (model: %s)", llm_base_url, llm_model)
+    elif api_key and api_key != "ollama":
         llm_client = OpenAI(api_key=api_key)
-        _explanation = ExplanationAgent(
-            llm_client=llm_client,
-            model=_exp_cfg.get("model", "gpt-4o-mini"),
-            temperature=_exp_cfg.get("temperature", 0.0),
-        )
-        logger.info("ExplanationAgent ready with model %s", _exp_cfg.get("model", "gpt-4o-mini"))
+        logger.info("ExplanationAgent using OpenAI (model: %s)", llm_model)
     else:
-        logger.error("OPENAI_API_KEY not set — ExplanationAgent will raise on queries")
+        logger.error("Neither LLM_BASE_URL nor OPENAI_API_KEY is set — ExplanationAgent will raise on queries")
+        return
+
+    _explanation = ExplanationAgent(
+        llm_client=llm_client,
+        model=llm_model,
+        temperature=_exp_cfg.get("temperature", 0.0),
+    )
 
 
 # ---------------------------------------------------------------------------

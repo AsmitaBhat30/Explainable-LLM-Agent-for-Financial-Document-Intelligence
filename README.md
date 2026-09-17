@@ -8,11 +8,11 @@ An AI system that ingests regulatory and financial PDFs, answers compliance ques
 <summary><strong>▶ Project Demo — click to expand</strong></summary>
 <br>
 
-The demo below animates the full pipeline end-to-end across three real regulatory queries. It runs in your browser with no setup required.
+The demo below replays the actual query UI (`streaming_ui.html`) end-to-end across three real regulatory queries, using the same rendering code the live app uses — just fed by a scripted event sequence instead of a running backend. It runs in your browser with no setup required.
 
 **[→ Open Live Demo](https://asmitabhat30.github.io/Explainable-LLM-Agent-for-Financial-Document-Intelligence/demo/)**
 
-What the demo shows (~60 second loop):
+What the demo shows (~40 second loop):
 
 | Query | Regulation | Outcome |
 |---|---|---|
@@ -21,12 +21,12 @@ What the demo shows (~60 second loop):
 | Position limits for commodity derivatives | MiFID II · CRR | Cited answer, no review flag |
 
 Each query animates the full agent pipeline in real time:
-- **RetrieverAgent** — FAISS vector search, top-k chunk retrieval with similarity scores
+- **RetrieverAgent** — FAISS vector search, top-k chunk retrieval with similarity scores rendered as live document cards
 - **ComplianceAgent** — regulation matching, `requires_review` flag evaluation
-- **ExplanationAgent** — streamed cited answer with source attribution
-- **Audit log** — live `log_decision()` trace on the right panel
+- **ExplanationAgent** — streamed, cited answer with source attribution
+- **Citations** — click any citation chip to open the exact source passage in a modal
 
-> Source: [`demo/index.html`](demo/index.html)
+> Source: [`demo/index.html`](demo/index.html) — a scripted replay of [`streaming_ui.html`](streaming_ui.html), the actual query interface.
 
 </details>
 

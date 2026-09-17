@@ -5,269 +5,385 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Demo — Explainable LLM Agent for Financial Document Intelligence</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  --bg:       #060F1C;
-  --panel:    #0C1E33;
-  --panel2:   #0A1929;
-  --border:   #18334F;
-  --text:     #C8DCF0;
-  --muted:    #4E7094;
-  --dim:      #2A4460;
-  --accent:   #3B9EFF;
-  --green:    #22C55E;
-  --amber:    #F59E0B;
-  --red:      #F87171;
-  --mono: 'SF Mono','Cascadia Code','Fira Code','Consolas',monospace;
-  --sans: -apple-system,'Segoe UI',system-ui,sans-serif;
+  --bg:        #F3F5F4;
+  --panel:     #FFFFFF;
+  --panel2:    #EAEDEB;
+  --border:    #DCE2DF;
+  --text:      #1B2320;
+  --muted:     #5B6864;
+  --dim:       #B4C0BB;
+  --accent:    #35606B;
+  --green:     #2E5E45;
+  --amber:     #97742A;
+  --red:       #A23B2E;
+  --shadow:    0 1px 2px rgba(27,35,32,0.06);
+  --shadow-md: 0 2px 8px rgba(27,35,32,0.10);
+  --serif: Georgia,'Iowan Old Style','Palatino Linotype',serif;
+  --mono: ui-monospace,'SF Mono',Menlo,monospace;
+  --sans: -apple-system,'Segoe UI',Roboto,sans-serif;
 }
 
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Top bar ── */
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Topbar ── */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 1.5rem;
-  height: 48px;
+  height: 50px; padding: 0 1.5rem;
+  background: var(--panel);
   border-bottom: 1px solid var(--border);
-  background: var(--panel2);
-  position: sticky; top: 0; z-index: 10;
+  box-shadow: var(--shadow);
+  position: sticky; top: 0; z-index: 20;
 }
 
 .brand {
-  display: flex; align-items: center; gap: 0.6rem;
-  font-size: 0.8rem; font-weight: 600; letter-spacing: -0.01em;
-  color: var(--text);
+  display: flex; align-items: center; gap: 0.65rem;
+  font-family: var(--serif); font-size: 0.95rem; font-weight: 600;
+  letter-spacing: -0.01em; color: var(--text);
 }
 
-.brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
-.live-badge {
+.topbar-meta {
+  display: flex; align-items: center; gap: 1rem;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+}
+
+.status-badge {
   display: flex; align-items: center; gap: 0.4rem;
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--green);
-  padding: 0.2em 0.65em;
-  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--green) 8%, transparent);
+  padding: 0.22em 0.7em; border-radius: 999px;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.03em;
+  background: #E9F0EC; color: #2E5E45;
+  transition: background 0.2s, color 0.2s;
 }
+.status-badge.streaming { background: #EAF0F3; color: var(--accent); }
 
-.live-dot {
+.status-dot {
   width: 6px; height: 6px; border-radius: 50%; background: var(--green);
   animation: pulse 1.5s ease-in-out infinite;
 }
+.status-badge.streaming .status-dot { background: var(--accent); }
 
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.demo-badge {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.22em 0.7em; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 600; letter-spacing: 0.05em;
+  background: #F5EFE3; color: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+}
+.demo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: pulse 1.5s ease-in-out infinite; }
 
-.topbar-right {
-  display: flex; align-items: center; gap: 1.5rem;
-  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
-  letter-spacing: 0.04em;
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Query area ── */
+.query-section {
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
 }
 
-/* ── Layout ── */
+.query-label {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; font-weight: 600;
+}
+
+.query-row {
+  display: flex; align-items: center; gap: 0.75rem;
+}
+
+.prompt-sym {
+  font-family: var(--mono); font-size: 1rem; color: var(--accent); flex-shrink: 0;
+}
+
+#queryInput {
+  flex: 1;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 0.82rem;
+  padding: 0.6rem 0.85rem; border-radius: 5px; outline: none;
+  box-shadow: inset 0 1px 3px rgba(13,27,42,0.06);
+}
+#queryInput::placeholder { color: var(--dim); }
+
+.btn {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  padding: 0.55rem 1.1rem; border-radius: 4px; border: 1px solid;
+  white-space: nowrap; pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--red);
+  border-radius: 6px;
+}
+
+.examples {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.ex-label { font-family: var(--mono); font-size: 0.6rem; color: var(--dim); }
+
+.ex-chip {
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+  padding: 0.22em 0.65em; border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border); color: var(--muted);
+  pointer-events: none;
+}
+.ex-chip.active { border-color: var(--accent); color: var(--accent); background: #EBF1F3; }
+
+/* ── Main layout ── */
 .layout {
   display: grid;
   grid-template-columns: 1fr 340px;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 50px - 84px);
   overflow: hidden;
 }
 
 /* ── Left panel ── */
-.left {
-  display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
+.left { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow: hidden; }
 
-.query-area {
-  padding: 1.25rem 1.5rem;
+/* Status rows */
+.status-rows {
+  padding: 0.75rem 1.25rem 0;
   border-bottom: 1px solid var(--border);
   background: var(--panel2);
-  flex-shrink: 0;
+  min-height: 88px;
 }
-
-.query-label {
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;
-}
-
-.query-box {
-  display: flex; align-items: flex-start; gap: 0.6rem;
-}
-
-.prompt-sym {
-  font-family: var(--mono); font-size: 0.85rem; color: var(--accent);
-  padding-top: 0.05rem; flex-shrink: 0;
-}
-
-#query-text {
-  font-family: var(--mono); font-size: 0.82rem; line-height: 1.5;
-  color: var(--text); flex: 1; min-height: 1.3em;
-}
-
-.cursor {
-  display: inline-block; width: 2px; height: 1em;
-  background: var(--accent); vertical-align: text-bottom;
-  animation: blink 0.9s step-end infinite;
-}
-@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-
-/* Response stream */
-.response-area {
-  flex: 1; overflow-y: auto; padding: 1.5rem;
-  display: flex; flex-direction: column; gap: 1.25rem;
-}
-
-.response-area::-webkit-scrollbar { width: 4px; }
-.response-area::-webkit-scrollbar-track { background: transparent; }
-.response-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
 
 .status-row {
-  display: flex; align-items: center; gap: 0.6rem;
-  font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+  display: flex; align-items: center; gap: 0.55rem;
+  font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  height: 26px; opacity: 0; transition: opacity 0.25s;
 }
+.status-row.visible { opacity: 1; }
 
 .status-icon {
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 14px; height: 14px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.6rem; flex-shrink: 0;
+  border-radius: 50%; font-size: 0.6rem;
 }
-
-.status-icon.spinner {
+.status-icon.spinning {
   border: 1.5px solid var(--dim); border-top-color: var(--accent);
-  animation: spin 0.7s linear infinite; background: none;
+  animation: spin 0.7s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.status-icon.done  { background: color-mix(in srgb,var(--green) 15%,transparent); color:var(--green); }
+.status-icon.warn  { background: color-mix(in srgb,var(--amber) 15%,transparent); color:var(--amber); }
+.status-icon.error { background: color-mix(in srgb,var(--red)   15%,transparent); color:var(--red);   }
 
-.status-icon.done { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); font-size: 0.65rem; }
-.status-icon.warn { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); font-size: 0.65rem; }
+/* Response area */
+.response-area {
+  flex: 1; overflow-y: auto; padding: 1.25rem;
+  display: flex; flex-direction: column; gap: 0;
+}
+.response-area::-webkit-scrollbar { width: 4px; }
+.response-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+.response-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; color: var(--dim); font-family: var(--mono); font-size: 0.75rem;
+  gap: 0.5rem; text-align: center;
+}
 
 .answer-block {
   background: var(--panel); border: 1px solid var(--border);
-  border-radius: 6px; padding: 1.1rem 1.25rem;
+  border-radius: 10px; padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-md);
+  display: none;
 }
 
-.answer-label {
-  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 0.6rem;
+.block-label {
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 0.7rem;
 }
 
-#answer-text {
-  font-size: 0.83rem; line-height: 1.7; color: var(--text);
+#answerText {
+  font-family: var(--sans); font-size: 0.9rem; line-height: 1.7; color: var(--text);
   min-height: 2em;
 }
 
+.cursor {
+  display: inline-block; width: 2px; height: 0.9em;
+  background: var(--accent); vertical-align: text-bottom;
+  animation: blink 0.9s step-end infinite; margin-left: 1px;
+}
+
+/* Citations */
 .citations {
   display: flex; flex-wrap: wrap; gap: 0.4rem;
-  margin-top: 1rem; padding-top: 0.9rem;
+  margin-top: 0.9rem; padding-top: 0.85rem;
   border-top: 1px solid var(--border);
 }
 
 .cite-chip {
-  font-family: var(--mono); font-size: 0.62rem;
-  padding: 0.22em 0.6em; border-radius: 3px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  color: var(--accent);
-  opacity: 0; transform: translateY(4px);
-  transition: opacity 0.3s, transform 0.3s;
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+  padding: 0.22em 0.65em; border-radius: 999px;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--accent); cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.cite-chip:hover {
+  border-color: var(--accent);
+  background: #EBF1F3;
 }
 
-.cite-chip.visible { opacity: 1; transform: translateY(0); }
-
-.review-flag {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  font-family: var(--mono); font-size: 0.62rem;
-  padding: 0.22em 0.7em; border-radius: 3px;
-  background: color-mix(in srgb, var(--amber) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
-  color: var(--amber);
-  opacity: 0; transition: opacity 0.3s;
+/* Citation modal */
+.cite-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65); z-index: 100;
+  align-items: center; justify-content: center;
 }
-.review-flag.visible { opacity: 1; }
-
-/* ── Right panel — agent log ── */
-.right {
+.cite-modal-overlay.open { display: flex; }
+.cite-modal {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; width: min(680px, 92vw); max-height: 80vh;
   display: flex; flex-direction: column; overflow: hidden;
-  background: var(--panel2);
+  box-shadow: 0 4px 24px rgba(27,35,32,0.14);
+}
+.cite-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border); gap: 1rem;
+}
+.cite-modal-title {
+  font-family: var(--mono); font-size: 0.75rem; color: var(--accent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cite-modal-meta {
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted); white-space: nowrap;
+}
+.cite-modal-close {
+  background: none; border: none; color: var(--muted); font-size: 1.1rem;
+  cursor: pointer; line-height: 1; padding: 0.2em 0.4em; border-radius: 3px;
+  flex-shrink: 0;
+}
+.cite-modal-close:hover { color: var(--text); background: var(--dim); }
+.cite-modal-body {
+  padding: 1.1rem; overflow-y: auto;
+  font-family: var(--mono); font-size: 0.75rem; line-height: 1.7;
+  color: var(--text); white-space: pre-wrap; word-break: break-word;
+}
+
+/* Review flag */
+.review-flag {
+  display: none; align-items: center; gap: 0.4rem;
+  font-family: var(--mono); font-size: 0.68rem;
+  padding: 0.35em 0.75em; border-radius: 3px; margin-top: 0.75rem;
+  background: color-mix(in srgb,var(--amber) 8%,transparent);
+  border: 1px solid color-mix(in srgb,var(--amber) 30%,transparent);
+  color: var(--amber);
+}
+
+/* Metadata row */
+.meta-row {
+  display: none; align-items: center; gap: 1rem;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--muted);
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.meta-val { color: var(--text); }
+.meta-val.risk-high   { color: var(--red); }
+.meta-val.risk-medium { color: var(--amber); }
+.meta-val.risk-low    { color: var(--green); }
+.meta-val.confidence  { color: var(--green); }
+
+/* ── Right panel ── */
+.right {
+  display: flex; flex-direction: column;
+  background: var(--bg); overflow: hidden;
+  border-left: 1px solid var(--border);
 }
 
 .panel-header {
-  padding: 0.75rem 1rem;
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--border);
-  font-family: var(--mono); font-size: 0.62rem;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
   flex-shrink: 0;
 }
 
-/* Agent stages */
-.agents {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 0.6rem;
-  flex-shrink: 0;
-}
+/* Agent rows */
+.agents { padding: 0.75rem 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
 
 .agent-row {
-  display: flex; align-items: center; gap: 0.65rem;
-  padding: 0.6rem 0.75rem; border-radius: 5px;
-  border: 1px solid transparent;
-  transition: border-color 0.3s, background 0.3s;
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.8rem; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel);
+  box-shadow: var(--shadow);
+  transition: background 0.2s, border-color 0.2s;
 }
+.agent-row.active { border-color: var(--accent); background: #EBF1F3; }
+.agent-row.done   { border-color: #9EC4B2;        background: #EDF4F0; }
 
-.agent-row.idle { border-color: var(--border); background: transparent; }
-.agent-row.active { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.agent-row.done  { border-color: color-mix(in srgb, var(--green) 30%, transparent); background: color-mix(in srgb, var(--green) 5%, transparent); }
-
-.agent-indicator {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  background: var(--dim); transition: background 0.3s;
+.agent-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--dim); flex-shrink: 0; transition: background 0.25s;
 }
-.agent-row.active .agent-indicator { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
-.agent-row.done  .agent-indicator { background: var(--green); animation: none; }
+.agent-row.active .agent-dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.agent-row.done   .agent-dot { background: var(--green); animation: none; }
 
 .agent-name {
-  font-family: var(--mono); font-size: 0.72rem; color: var(--text); flex: 1;
-  transition: color 0.3s;
+  font-family: var(--mono); font-size: 0.72rem;
+  color: var(--muted); flex: 1; transition: color 0.25s;
 }
-.agent-row.idle .agent-name { color: var(--muted); }
+.agent-row.active .agent-name,
+.agent-row.done   .agent-name { color: var(--text); }
 
-.agent-time {
-  font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
-}
-.agent-row.active .agent-time { color: var(--accent); }
-.agent-row.done  .agent-time { color: var(--green); }
-
-/* Log stream */
-.log-area {
-  flex: 1; overflow-y: auto; padding: 0.75rem 1rem;
-  font-family: var(--mono); font-size: 0.67rem; line-height: 1.7;
+.agent-tag {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--dim);
 }
 
-.log-area::-webkit-scrollbar { width: 3px; }
-.log-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
-
-.log-line {
-  display: flex; gap: 0.6rem; align-items: baseline;
-  opacity: 0; transform: translateY(3px);
-  transition: opacity 0.25s, transform 0.25s;
+/* Retrieved docs */
+.docs-area {
+  flex: 1; overflow-y: auto; padding: 0.75rem 0.85rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
 }
-.log-line.visible { opacity: 1; transform: translateY(0); }
+.docs-area::-webkit-scrollbar { width: 3px; }
+.docs-area::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
 
-.log-ts { color: var(--dim); flex-shrink: 0; }
-.log-tag { flex-shrink: 0; }
-.log-tag.retriever { color: var(--accent); }
-.log-tag.compliance { color: #A78BFA; }
-.log-tag.explanation { color: #34D399; }
-.log-tag.audit { color: var(--amber); }
-.log-msg { color: var(--muted); }
-.log-val { color: var(--text); }
+.doc-placeholder {
+  font-family: var(--mono); font-size: 0.68rem; color: var(--dim);
+  text-align: center; margin-top: 1rem;
+}
+
+.doc-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.7rem 0.85rem;
+  box-shadow: var(--shadow);
+}
+
+.doc-card-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.doc-id { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+.doc-score { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); font-weight: 600; }
+.doc-section { font-family: var(--mono); font-size: 0.7rem; color: var(--text); margin-bottom: 0.25rem; }
+.doc-excerpt { font-size: 0.72rem; color: var(--muted); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Progress bar */
 .progress-wrap {
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 0.85rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -278,28 +394,25 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   margin-bottom: 0.35rem;
 }
 
-.progress-bar-bg {
+.progress-bg {
   height: 3px; background: var(--dim); border-radius: 2px; overflow: hidden;
 }
 
-.progress-bar-fill {
+.progress-fill {
   height: 100%; background: var(--accent); border-radius: 2px;
-  width: 0%; transition: width 0.4s ease;
+  width: 0%; transition: width 0.35s ease;
 }
 
-/* Scenario counter */
+/* Scenario dots — demo-only affordance, not part of the real product UI */
 .scenario-dots {
-  display: flex; justify-content: center; gap: 0.4rem;
-  padding: 0.6rem 1rem;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.6rem 0.85rem 0.75rem;
 }
+.s-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--dim); transition: background 0.3s, width 0.3s; }
+.s-dot.active { background: var(--accent); width: 14px; border-radius: 3px; }
 
-.s-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--dim); transition: background 0.3s;
-}
-.s-dot.active { background: var(--accent); }
+/* hidden utility */
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -310,89 +423,121 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="brand-dot"></div>
     Explainable LLM Agent · Financial Document Intelligence
   </div>
-  <div class="topbar-right">
+  <div class="topbar-meta">
     <span>FastAPI :8000</span>
-    <span>FAISS IVF · 8 domains</span>
-    <div class="live-badge"><div class="live-dot"></div>Live Demo</div>
+    <span>FAISS IVF · SSE</span>
+    <div class="demo-badge"><div class="demo-dot"></div>Autoplay Demo</div>
+    <div class="status-badge" id="statusBadge"><div class="status-dot"></div><span id="statusBadgeText">Ready</span></div>
+  </div>
+</div>
+
+<!-- Query section -->
+<div class="query-section">
+  <div class="query-label">Query</div>
+  <div class="query-row">
+    <span class="prompt-sym">›</span>
+    <input type="text" id="queryInput" placeholder="Ask a regulatory compliance question…" autocomplete="off" readonly/>
+    <button class="btn btn-primary" id="queryBtn">Submit</button>
+    <button class="btn btn-cancel hidden" id="cancelBtn">Cancel</button>
+  </div>
+  <div class="examples">
+    <span class="ex-label">try:</span>
+    <button class="ex-chip" id="chip-0">Basel III minimum capital requirements</button>
+    <button class="ex-chip" id="chip-1">GDPR erasure vs. transaction records</button>
+    <button class="ex-chip" id="chip-2">MiFID II commodity position limits</button>
   </div>
 </div>
 
 <!-- Main layout -->
 <div class="layout">
 
-  <!-- Left: query + response -->
+  <!-- Left panel -->
   <div class="left">
-    <div class="query-area">
-      <div class="query-label">Query</div>
-      <div class="query-box">
-        <span class="prompt-sym">&gt;</span>
-        <div id="query-text"><span class="cursor"></span></div>
+
+    <!-- Status rows -->
+    <div class="status-rows">
+      <div class="status-row" id="sr-retriever">
+        <div class="status-icon spinning" id="si-retriever"></div>
+        <span id="sm-retriever"></span>
+      </div>
+      <div class="status-row" id="sr-compliance">
+        <div class="status-icon spinning" id="si-compliance"></div>
+        <span id="sm-compliance"></span>
+      </div>
+      <div class="status-row" id="sr-explanation">
+        <div class="status-icon spinning" id="si-explanation"></div>
+        <span id="sm-explanation"></span>
       </div>
     </div>
 
-    <div class="response-area" id="response-area">
-      <div class="status-row" id="status-retriever" style="display:none">
-        <div class="status-icon spinner" id="icon-retriever"></div>
-        <span id="msg-retriever"></span>
-      </div>
-      <div class="status-row" id="status-compliance" style="display:none">
-        <div class="status-icon spinner" id="icon-compliance"></div>
-        <span id="msg-compliance"></span>
-      </div>
-      <div class="status-row" id="status-explanation" style="display:none">
-        <div class="status-icon spinner" id="icon-explanation"></div>
-        <span id="msg-explanation"></span>
+    <!-- Response -->
+    <div class="response-area" id="responseArea">
+      <div class="response-placeholder" id="placeholder">
+        <span style="font-size:1.5rem;color:var(--dim)">›_</span>
+        <span>Submit a query to begin</span>
       </div>
 
-      <div class="answer-block" id="answer-block" style="display:none">
-        <div class="answer-label">Response</div>
-        <div id="answer-text"></div>
-        <div class="citations" id="citations"></div>
-      </div>
+      <div class="answer-block" id="answerBlock">
+        <div class="block-label">Response</div>
+        <div id="answerText"></div>
 
-      <div id="review-flag" class="review-flag" style="display:none">
-        ⚠ requires_review: true — human oversight recommended
+        <div class="citations" id="citationsRow"></div>
+
+        <div class="review-flag" id="reviewFlag">
+          ⚠ requires_review: true — human oversight recommended
+        </div>
+
+        <div class="meta-row" id="metaRow">
+          <span>confidence: <span class="meta-val confidence" id="metaConf">—</span></span>
+          <span>·</span>
+          <span>risk: <span class="meta-val" id="metaRisk">—</span></span>
+          <span>·</span>
+          <span>latency: <span class="meta-val" id="metaLatency">—</span></span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Right: agent pipeline + log -->
+  <!-- Right panel -->
   <div class="right">
     <div class="panel-header">Agent Pipeline</div>
 
     <div class="agents">
-      <div class="agent-row idle" id="agent-retriever">
-        <div class="agent-indicator"></div>
+      <div class="agent-row" id="ar-retriever">
+        <div class="agent-dot"></div>
         <div class="agent-name">RetrieverAgent</div>
-        <div class="agent-time" id="time-retriever">—</div>
+        <div class="agent-tag">FAISS</div>
       </div>
-      <div class="agent-row idle" id="agent-compliance">
-        <div class="agent-indicator"></div>
+      <div class="agent-row" id="ar-compliance">
+        <div class="agent-dot"></div>
         <div class="agent-name">ComplianceAgent</div>
-        <div class="agent-time" id="time-compliance">—</div>
+        <div class="agent-tag">LangChain</div>
       </div>
-      <div class="agent-row idle" id="agent-explanation">
-        <div class="agent-indicator"></div>
+      <div class="agent-row" id="ar-explanation">
+        <div class="agent-dot"></div>
         <div class="agent-name">ExplanationAgent</div>
-        <div class="agent-time" id="time-explanation">—</div>
+        <div class="agent-tag">GPT-4o</div>
       </div>
     </div>
 
-    <div class="panel-header" style="border-top:none">Audit Log</div>
-    <div class="log-area" id="log-area"></div>
+    <div class="panel-header" style="border-top:1px solid var(--border)">Retrieved Documents</div>
+
+    <div class="docs-area" id="docsArea">
+      <div class="doc-placeholder" id="docsPlaceholder">Documents appear during retrieval</div>
+    </div>
 
     <div class="progress-wrap">
       <div class="progress-label">
-        <span id="progress-label">Idle</span>
-        <span id="progress-pct">0%</span>
+        <span id="progressLabel">Idle</span>
+        <span id="progressPct">—</span>
       </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progress-fill"></div>
+      <div class="progress-bg">
+        <div class="progress-fill" id="progressFill"></div>
       </div>
     </div>
 
     <div class="scenario-dots">
-      <div class="s-dot active" id="dot-0"></div>
+      <div class="s-dot" id="dot-0"></div>
       <div class="s-dot" id="dot-1"></div>
       <div class="s-dot" id="dot-2"></div>
     </div>
@@ -401,242 +546,359 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 </div>
 
 <script>
-const demos = [
-  {
-    query: "What are the minimum capital requirements under Basel III for commercial banks?",
-    regulation: "Basel III · CRR",
-    requires_review: false,
-    retrieved: [
-      { id: "BASEL3_§4.1", score: "0.94" },
-      { id: "BASEL3_§6.2", score: "0.89" },
-      { id: "CRR_Art.92",  score: "0.81" },
-      { id: "ECB_SUP_§3.4",score: "0.76" },
-    ],
-    compliance_note: "Regulation matched: Basel III · CRR — no personal data detected",
-    answer: "Under Basel III, commercial banks must maintain a minimum Common Equity Tier 1 (CET1) ratio of 4.5% of risk-weighted assets, a Tier 1 capital ratio of 6%, and a total capital ratio of 8%. A Capital Conservation Buffer of 2.5% in CET1 is additionally required, bringing the effective minimum CET1 to 7%. Systemically important institutions may face additional surcharges of up to 3.5%.",
-    citations: ["Basel III §4.1", "Basel III §6.2", "CRR Art.92"],
-  },
-  {
-    query: "Does GDPR's right to erasure apply to financial transaction records?",
-    regulation: "GDPR · PSD2 · BaFin",
-    requires_review: true,
-    retrieved: [
-      { id: "GDPR_Art.17",  score: "0.96" },
-      { id: "GDPR_Art.6",   score: "0.91" },
-      { id: "PSD2_Art.94",  score: "0.83" },
-      { id: "BaFin_§154",   score: "0.77" },
-    ],
-    compliance_note: "Personal data domain — requires_review: true",
-    answer: "The right to erasure under GDPR Article 17 is subject to legal retention obligations. Financial transaction records are typically exempt: AMLD5 mandates a minimum 5-year retention period, and BaFin guidelines require up to 10 years for certain transaction types. Erasure requests for transaction data must be evaluated against applicable retention law before any action is taken.",
-    citations: ["GDPR Art.17", "GDPR Art.6", "PSD2 Art.94", "BaFin §154"],
-  },
-  {
-    query: "What position limits apply under MiFID II for commodity derivatives?",
-    regulation: "MiFID II · CRR",
-    requires_review: false,
-    retrieved: [
-      { id: "MIFID2_Art.57", score: "0.95" },
-      { id: "MIFID2_RTS21",  score: "0.88" },
-      { id: "CRR_Art.355",   score: "0.74" },
-      { id: "ECB_SUP_§5.1",  score: "0.69" },
-    ],
-    compliance_note: "Regulation matched: MiFID II · CRR — no personal data detected",
-    answer: "Under MiFID II Article 57, competent authorities must establish position limits on commodity derivatives traded on trading venues. Spot-month limits are generally set at 25% of deliverable supply; other-months limits at 25% of open interest. Investment firms must report positions exceeding threshold levels. Non-financial entities hedging commercial risk may qualify for an exemption.",
-    citations: ["MiFID II Art.57", "MiFID II RTS 21", "CRR Art.355"],
-  },
-];
+/*
+ * This page replays the real streaming_ui.html client (same DOM, same CSS,
+ * same handleEvent()/setAgent()/showStatus() rendering functions) against a
+ * scripted sequence of synthetic SSE-shaped events instead of a live
+ * fetch() to /query/stream — so what you see here is exactly what the
+ * actual frontend renders for a real query, with no backend required to
+ * view it. See streaming_ui.html for the live version that talks to a
+ * running FastAPI server.
+ */
 
-let currentDemo = 0;
-let running = false;
+let streamingAnswer = '';
 
-function getTs() {
-  const n = new Date();
-  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}.${String(n.getMilliseconds()).padStart(3,'0').slice(0,2)}`;
+const queryInput      = document.getElementById('queryInput');
+const queryBtn        = document.getElementById('queryBtn');
+const cancelBtn       = document.getElementById('cancelBtn');
+const placeholder     = document.getElementById('placeholder');
+const answerBlock     = document.getElementById('answerBlock');
+const answerText      = document.getElementById('answerText');
+const citationsRow    = document.getElementById('citationsRow');
+const reviewFlag      = document.getElementById('reviewFlag');
+const metaRow         = document.getElementById('metaRow');
+const docsArea        = document.getElementById('docsArea');
+const docsPlaceholder = document.getElementById('docsPlaceholder');
+const progressFill    = document.getElementById('progressFill');
+const progressLabel   = document.getElementById('progressLabel');
+const progressPct     = document.getElementById('progressPct');
+const statusBadge     = document.getElementById('statusBadge');
+const statusBadgeText = document.getElementById('statusBadgeText');
+
+// ── Same rendering functions as streaming_ui.html ──────────────────────
+
+function setAgent(id, state) {
+  const row = document.getElementById('ar-' + id);
+  row.className = 'agent-row' + (state ? ' ' + state : '');
 }
 
-function addLog(tag, tagClass, msg, val = '') {
-  const area = document.getElementById('log-area');
-  const line = document.createElement('div');
-  line.className = 'log-line';
-  line.innerHTML = `<span class="log-ts">${getTs()}</span><span class="log-tag ${tagClass}">[${tag}]</span><span class="log-msg">${msg}</span>${val ? `<span class="log-val">${val}</span>` : ''}`;
-  area.appendChild(line);
-  requestAnimationFrame(() => { line.classList.add('visible'); area.scrollTop = area.scrollHeight; });
+function showStatus(id, msg, iconState) {
+  const row  = document.getElementById('sr-' + id);
+  const icon = document.getElementById('si-' + id);
+  const msg_ = document.getElementById('sm-' + id);
+  row.classList.add('visible');
+  msg_.textContent = msg;
+  icon.className = 'status-icon ' + iconState;
+  if (iconState === 'done')  icon.textContent = '✓';
+  if (iconState === 'warn')  icon.textContent = '⚠';
+  if (iconState === 'error') icon.textContent = '✕';
+  if (iconState === 'spinning') icon.textContent = '';
 }
 
 function setProgress(label, pct) {
-  document.getElementById('progress-label').textContent = label;
-  document.getElementById('progress-pct').textContent = pct + '%';
-  document.getElementById('progress-fill').style.width = pct + '%';
+  progressLabel.textContent = label;
+  progressPct.textContent   = pct > 0 ? pct + '%' : '—';
+  progressFill.style.width  = pct + '%';
 }
 
-function setAgent(id, state, time = '—') {
-  const row = document.getElementById('agent-' + id);
-  const icon = document.getElementById('icon-' + id);
-  const timeEl = document.getElementById('time-' + id);
-  row.className = 'agent-row ' + state;
-  timeEl.textContent = time;
-  if (state !== 'idle' && icon) {
-    icon.className = 'status-icon ' + (state === 'done' ? 'done' : 'spinner');
-    if (state === 'done') icon.textContent = '✓';
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+
+    case 'status':
+      setProgress(ev.message, Math.round((ev.step / ev.total) * 100));
+
+      if (ev.step === 1) {
+        setAgent('retriever', 'active');
+        showStatus('retriever', 'Querying FAISS index…', 'spinning');
+      } else if (ev.step === 2) {
+        setAgent('retriever', 'done');
+        showStatus('retriever', 'Retrieval complete', 'done');
+        setAgent('compliance', 'active');
+        showStatus('compliance', 'Analysing regulatory context…', 'spinning');
+      } else if (ev.step === 3) {
+        setAgent('compliance', 'done');
+        showStatus('compliance', ev.message || 'Compliance check done', 'done');
+        setAgent('explanation', 'active');
+        showStatus('explanation', 'Generating cited response…', 'spinning');
+      }
+      break;
+
+    case 'retrieval':
+      docsPlaceholder.style.display = 'none';
+      docsArea.querySelectorAll('.doc-card').forEach(c => c.remove());
+      (ev.documents || []).forEach(doc => {
+        const card = document.createElement('div');
+        card.className = 'doc-card';
+        card.innerHTML = `
+          <div class="doc-card-top">
+            <span class="doc-id">${doc.doc_id}</span>
+            <span class="doc-score">${Math.round(doc.score * 100)}%</span>
+          </div>
+          <div class="doc-section">${doc.section || ''}</div>
+          <div class="doc-excerpt">${doc.text || ''}</div>`;
+        docsArea.appendChild(card);
+      });
+      break;
+
+    case 'token':
+      placeholder.style.display = 'none';
+      answerBlock.style.display = 'block';
+      streamingAnswer += ev.token;
+      answerText.innerHTML = escapeHtml(streamingAnswer) + '<span class="cursor"></span>';
+      answerBlock.scrollIntoView({ block: 'nearest' });
+      break;
+
+    case 'complete':
+      setAgent('explanation', 'done');
+      showStatus('explanation', 'Response complete', 'done');
+
+      placeholder.style.display = 'none';
+      answerBlock.style.display = 'block';
+      answerText.textContent = ev.answer || streamingAnswer;
+
+      if (ev.citations && ev.citations.length) {
+        citationsRow.innerHTML = '';
+        ev.citations.forEach(c => {
+          const chip = document.createElement('button');
+          chip.className = 'cite-chip';
+          chip.title = 'Click to view source passage';
+          chip.textContent = c.doc_id + (c.section ? ' · ' + c.section : '');
+          chip.addEventListener('click', () => openCiteModal(c));
+          citationsRow.appendChild(chip);
+        });
+      }
+
+      if (ev.risk_level === 'HIGH' || ev.requires_review) {
+        reviewFlag.style.display = 'flex';
+        showStatus('compliance', 'requires_review: true', 'warn');
+      }
+
+      if (ev.confidence !== undefined || ev.risk_level || ev.latency_ms) {
+        metaRow.style.display = 'flex';
+        document.getElementById('metaConf').textContent    = ev.confidence ? Math.round(ev.confidence * 100) + '%' : '—';
+        const riskEl = document.getElementById('metaRisk');
+        riskEl.textContent  = ev.risk_level || '—';
+        riskEl.className    = 'meta-val ' + (ev.risk_level === 'HIGH' ? 'risk-high' : ev.risk_level === 'MEDIUM' ? 'risk-medium' : 'risk-low');
+        document.getElementById('metaLatency').textContent = ev.latency_ms ? ev.latency_ms + ' ms' : '—';
+      }
+
+      setProgress('Complete', 100);
+      break;
   }
 }
 
-function showStatus(id, msg) {
-  const row = document.getElementById('status-' + id);
-  const msgEl = document.getElementById('msg-' + id);
-  row.style.display = 'flex';
-  msgEl.textContent = msg;
+function openCiteModal(citation) {
+  const overlay = document.getElementById('citeModalOverlay');
+  document.getElementById('citeModalTitle').textContent =
+    citation.doc_id + (citation.section ? '  ·  ' + citation.section : '');
+  const pages = citation.page_range && citation.page_range.length
+    ? 'Pages ' + citation.page_range.join('–')
+    : '';
+  const score = citation.score !== undefined ? 'Relevance: ' + Math.round(citation.score * 100) + '%' : '';
+  document.getElementById('citeModalMeta').textContent = [pages, score].filter(Boolean).join('   ');
+  document.getElementById('citeModalBody').textContent =
+    citation.text || '(No source text available for this citation)';
+  overlay.classList.add('open');
 }
 
-function markStatusDone(id, msg) {
-  const icon = document.getElementById('icon-' + id);
-  const msgEl = document.getElementById('msg-' + id);
-  icon.className = 'status-icon done';
-  icon.textContent = '✓';
-  msgEl.textContent = msg;
+function closeCiteModal() {
+  document.getElementById('citeModalOverlay').classList.remove('open');
 }
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCiteModal(); });
+
+// ── Scenario data (real regulatory text, matching evaluation/test_cases.py
+//    where a fixture exists for the topic) ───────────────────────────────
+
+const demos = [
+  {
+    query: "What are the minimum capital requirements under Basel III for commercial banks?",
+    retrieved: [
+      { doc_id: "basel_iii_2017", section: "Capital Conservation Buffer", score: 0.94,
+        text: "Basel III requires banks to hold a capital conservation buffer of 2.5% of risk-weighted assets, comprised of Common Equity Tier 1 capital, above the regulatory minimum." },
+      { doc_id: "crr_2013", section: "Article 92", score: 0.91,
+        text: "Institutions shall at all times satisfy a Common Equity Tier 1 capital ratio of 4.5%, a Tier 1 capital ratio of 6%, and a Total capital ratio of 8%." },
+      { doc_id: "basel_iii_2017", section: "Leverage Ratio Framework, para 5", score: 0.81,
+        text: "The Basel III leverage ratio framework sets a minimum Tier 1 leverage ratio requirement of 3%, calculated as Tier 1 capital divided by total exposure measure." },
+      { doc_id: "ecb_supervisory_manual", section: "SREP Methodology, Ch. 4", score: 0.74,
+        text: "The Pillar 2 Requirement is a bank-specific capital requirement that applies in addition to the minimum own funds requirement, addressing risks not covered by Pillar 1." },
+    ],
+    complianceMsg: "Regulation matched: Basel III · CRR — no personal data detected",
+    answer: "Under Basel III, commercial banks must maintain a minimum Common Equity Tier 1 (CET1) ratio of 4.5% of risk-weighted assets, a Tier 1 capital ratio of 6%, and a total capital ratio of 8%, per the CRR's Article 92. A Capital Conservation Buffer of 2.5% in CET1 is additionally required, bringing the effective minimum CET1 to 7%. A Tier 1 leverage ratio of at least 3% applies on an unweighted basis, and the ECB's SREP process may layer a bank-specific Pillar 2 Requirement on top of these minimums.",
+    citations: [
+      { doc_id: "basel_iii_2017", section: "Capital Conservation Buffer", page_range: [55, 55], score: 0.94,
+        text: "Basel III requires banks to hold a capital conservation buffer of 2.5% of risk-weighted assets, comprised of Common Equity Tier 1 capital, above the regulatory minimum, with restrictions on capital distributions if the buffer is not met." },
+      { doc_id: "crr_2013", section: "Article 92", page_range: [40, 40], score: 0.91,
+        text: "Institutions shall at all times satisfy a Common Equity Tier 1 capital ratio of 4.5%, a Tier 1 capital ratio of 6%, and a Total capital ratio of 8%, each expressed as a percentage of the total risk exposure amount." },
+      { doc_id: "basel_iii_2017", section: "Leverage Ratio Framework, para 5", page_range: [3, 3], score: 0.81,
+        text: "The Basel III leverage ratio framework sets a minimum Tier 1 leverage ratio requirement of 3%, calculated as Tier 1 capital divided by total exposure measure." },
+    ],
+    risk_level: "LOW", requires_review: false, confidence: 0.86, latency_ms: 2840,
+  },
+  {
+    query: "Does GDPR's right to erasure apply to financial transaction records?",
+    retrieved: [
+      { doc_id: "gdpr_2016", section: "Article 17", score: 0.96,
+        text: "The data subject shall have the right to obtain from the controller the erasure of personal data without undue delay where the data is no longer necessary for the purposes it was collected for." },
+      { doc_id: "psd2_2015", section: "Article 94", score: 0.85,
+        text: "Payment service providers may process personal data necessary for the prevention, investigation and detection of payment fraud, provided this complies with applicable data protection law." },
+      { doc_id: "gdpr_2016", section: "Article 7", score: 0.79,
+        text: "Consent must be freely given, specific, informed and unambiguous, and the controller must be able to demonstrate that the data subject has consented to processing." },
+      { doc_id: "bafin_kwg", section: "§154 KWG — Record Retention", score: 0.72,
+        text: "Institutions must retain records relating to financial transactions for a minimum statutory period, independent of any data-subject erasure request under separate data protection law." },
+    ],
+    complianceMsg: "Personal data domain — requires_review: true",
+    answer: "The right to erasure under GDPR Article 17 is subject to conflicting legal retention obligations. Financial transaction records are typically exempt in practice: PSD2 Article 94 permits providers to retain and process transaction data for fraud prevention, and German banking law (§154 KWG) imposes a minimum statutory retention period independent of GDPR. An erasure request for transaction data must be evaluated against these retention obligations before any data is deleted — this is exactly the kind of cross-regulation conflict flagged for human review.",
+    citations: [
+      { doc_id: "gdpr_2016", section: "Article 17", page_range: [43, 43], score: 0.96,
+        text: "The data subject shall have the right to obtain from the controller the erasure of personal data without undue delay where, among other grounds, the data is no longer necessary for the purposes for which it was collected or the data subject withdraws consent." },
+      { doc_id: "psd2_2015", section: "Article 94", page_range: [70, 70], score: 0.85,
+        text: "Payment service providers may process personal data necessary for the prevention, investigation and detection of payment fraud, provided that such processing is carried out in accordance with applicable data protection law." },
+      { doc_id: "bafin_kwg", section: "§154 KWG — Record Retention", page_range: [12, 12], score: 0.72,
+        text: "Institutions must retain records relating to financial transactions for a minimum statutory period, independent of any data-subject erasure request under separate data protection law." },
+    ],
+    risk_level: "HIGH", requires_review: true, confidence: 0.79, latency_ms: 3210,
+  },
+  {
+    query: "What position limits apply under MiFID II for commodity derivatives?",
+    retrieved: [
+      { doc_id: "mifid2_2014", section: "Article 57", score: 0.95,
+        text: "Competent authorities shall establish and apply position limits on the size of a net position which a person can hold at all times in commodity derivatives traded on trading venues." },
+      { doc_id: "mifid2_2014", section: "RTS 21 — Position Limit Methodology", score: 0.88,
+        text: "Spot-month limits are generally set at 25% of deliverable supply; other-months limits at 25% of open interest, calculated per the methodology in the regulatory technical standards." },
+      { doc_id: "crr_2013", section: "Article 355", score: 0.74,
+        text: "Institutions shall calculate own funds requirements for position risk in commodities using either the maturity ladder approach or the simplified approach." },
+      { doc_id: "ecb_supervisory_manual", section: "Market Risk Oversight, §5.1", score: 0.69,
+        text: "Supervisors monitor investment firms' compliance with position limit reporting obligations as part of ongoing prudential oversight of trading book exposures." },
+    ],
+    complianceMsg: "Regulation matched: MiFID II · CRR — no personal data detected",
+    answer: "Under MiFID II Article 57, competent authorities must establish position limits on commodity derivatives traded on trading venues. Per RTS 21, spot-month limits are generally set at 25% of deliverable supply, and other-months limits at 25% of open interest. Investment firms must also hold own funds against position risk in commodities under CRR Article 355, using either the maturity ladder or simplified approach. Non-financial entities hedging commercial risk may qualify for an exemption from the position limit regime.",
+    citations: [
+      { doc_id: "mifid2_2014", section: "Article 57", page_range: [58, 59], score: 0.95,
+        text: "Competent authorities shall establish and apply position limits on the size of a net position which a person can hold at all times in commodity derivatives traded on trading venues, based on the methodology established by ESMA." },
+      { doc_id: "mifid2_2014", section: "RTS 21 — Position Limit Methodology", page_range: [4, 6], score: 0.88,
+        text: "Spot-month limits are generally set at 25% of deliverable supply; other-months limits at 25% of open interest, calculated per the methodology in the regulatory technical standards." },
+      { doc_id: "crr_2013", section: "Article 355", page_range: [128, 128], score: 0.74,
+        text: "Institutions shall calculate own funds requirements for position risk in commodities using either the maturity ladder approach or the simplified approach." },
+    ],
+    risk_level: "LOW", requires_review: false, confidence: 0.83, latency_ms: 2670,
+  },
+];
+
+// ── Playback engine ─────────────────────────────────────────────────────
+
+let currentDemo = 0;
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function typeQuery(text) {
-  const el = document.getElementById('query-text');
-  el.innerHTML = '<span class="cursor"></span>';
+async function typeIntoInput(text) {
+  queryInput.value = '';
   for (let i = 0; i < text.length; i++) {
-    await delay(28 + Math.random() * 22);
-    el.innerHTML = text.slice(0, i + 1) + '<span class="cursor"></span>';
+    await delay(22 + Math.random() * 18);
+    queryInput.value = text.slice(0, i + 1);
   }
 }
 
-async function streamAnswer(text) {
-  const el = document.getElementById('answer-text');
-  el.textContent = '';
-  const words = text.split(' ');
-  for (let i = 0; i < words.length; i++) {
-    await delay(45 + Math.random() * 35);
-    el.textContent += (i > 0 ? ' ' : '') + words[i];
+function setStreaming(streaming) {
+  if (streaming) {
+    queryBtn.classList.add('hidden');
+    cancelBtn.classList.remove('hidden');
+    statusBadge.classList.add('streaming');
+    statusBadgeText.textContent = 'Streaming';
+  } else {
+    queryBtn.classList.remove('hidden');
+    cancelBtn.classList.add('hidden');
+    statusBadge.classList.remove('streaming');
+    statusBadgeText.textContent = 'Ready';
   }
 }
 
 function resetUI() {
   ['retriever','compliance','explanation'].forEach(id => {
-    setAgent(id, 'idle');
-    const row = document.getElementById('status-' + id);
-    if (row) row.style.display = 'none';
-    const icon = document.getElementById('icon-' + id);
-    if (icon) { icon.className = 'status-icon spinner'; icon.textContent = ''; }
-    document.getElementById('time-' + id).textContent = '—';
+    document.getElementById('sr-' + id).classList.remove('visible');
+    const icon = document.getElementById('si-' + id);
+    icon.className = 'status-icon spinning';
+    icon.textContent = '';
+    setAgent(id, '');
   });
-  document.getElementById('answer-block').style.display = 'none';
-  document.getElementById('answer-text').textContent = '';
-  document.getElementById('citations').innerHTML = '';
-  document.getElementById('review-flag').style.display = 'none';
-  document.getElementById('review-flag').className = 'review-flag';
-  document.getElementById('log-area').innerHTML = '';
-  setProgress('Idle', 0);
+  placeholder.style.display = 'flex';
+  answerBlock.style.display = 'none';
+  answerText.textContent = '';
+  citationsRow.innerHTML = '';
+  reviewFlag.style.display = 'none';
+  metaRow.style.display = 'none';
+  docsPlaceholder.style.display = 'block';
+  docsArea.querySelectorAll('.doc-card').forEach(c => c.remove());
+  setProgress('Initialising', 5);
+  streamingAnswer = '';
 }
 
-async function runDemo(d) {
+async function runDemo(d, idx) {
   resetUI();
+  [0, 1, 2].forEach(i => document.getElementById('dot-' + i).classList.toggle('active', i === idx));
+  [0, 1, 2].forEach(i => document.getElementById('chip-' + i).classList.toggle('active', i === idx));
 
-  // Update dots
-  for (let i = 0; i < 3; i++) {
-    document.getElementById('dot-' + i).className = 's-dot' + (i === currentDemo ? ' active' : '');
-  }
-
-  // Type query
-  setProgress('Receiving query', 5);
-  addLog('API', 'audit', 'POST /query — JWT verified');
-  await typeQuery(d.query);
-  await delay(400);
-
-  // ── RetrieverAgent ──
-  setAgent('retriever', 'active', '...');
-  showStatus('retriever', 'Querying FAISS index...');
-  setProgress('RetrieverAgent', 20);
-  addLog('RETRIEVER', 'retriever', 'log_decision: ', 'querying FAISS IVF index');
-  await delay(800);
-  addLog('RETRIEVER', 'retriever', 'embedding query vector');
-  await delay(600);
-  for (const chunk of d.retrieved) {
-    await delay(260);
-    addLog('RETRIEVER', 'retriever', `chunk: ${chunk.id}  score=`, chunk.score);
-  }
+  await typeIntoInput(d.query);
   await delay(300);
-  markStatusDone('retriever', `Retrieved ${d.retrieved.length} chunks  ·  top score ${d.retrieved[0].score}`);
-  setAgent('retriever', 'done', `${(1.1 + Math.random()*0.4).toFixed(2)}s`);
-  setProgress('RetrieverAgent', 38);
+  setStreaming(true);
 
-  await delay(350);
+  handleEvent({ type: 'status', step: 1, total: 3, message: 'Retrieving relevant chunks…' });
+  await delay(900);
 
-  // ── ComplianceAgent ──
-  setAgent('compliance', 'active', '...');
-  showStatus('compliance', 'Analysing regulatory context...');
-  setProgress('ComplianceAgent', 50);
-  addLog('COMPLIANCE', 'compliance', 'log_decision: ', 'scanning retrieved chunks');
+  handleEvent({ type: 'retrieval', documents: d.retrieved });
+  await delay(500);
+
+  handleEvent({ type: 'status', step: 2, total: 3, message: 'Checking regulatory context…' });
   await delay(700);
-  addLog('COMPLIANCE', 'compliance', 'regulation matched: ', d.regulation);
-  await delay(500);
-  addLog('COMPLIANCE', 'compliance', 'requires_review: ', d.requires_review ? 'TRUE' : 'false');
+
+  handleEvent({ type: 'status', step: 3, total: 3, message: d.complianceMsg });
   await delay(400);
-  markStatusDone('compliance', d.compliance_note);
-  setAgent('compliance', 'done', `${(0.7 + Math.random()*0.3).toFixed(2)}s`);
-  setProgress('ComplianceAgent', 65);
 
-  await delay(350);
-
-  // ── ExplanationAgent ──
-  setAgent('explanation', 'active', '...');
-  showStatus('explanation', 'Generating cited response...');
-  setProgress('ExplanationAgent', 72);
-  addLog('EXPLANATION', 'explanation', 'log_decision: ', 'building grounded response');
-  await delay(500);
-  addLog('EXPLANATION', 'explanation', 'LLM call: ', 'gpt-4o-mini');
-
-  document.getElementById('answer-block').style.display = 'block';
-  await streamAnswer(d.answer);
-
-  setProgress('ExplanationAgent', 92);
+  const words = d.answer.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    await delay(38 + Math.random() * 32);
+    handleEvent({ type: 'token', token: (i > 0 ? ' ' : '') + words[i] });
+  }
   await delay(200);
-  addLog('EXPLANATION', 'explanation', 'citations attached: ', d.citations.length);
-  markStatusDone('explanation', 'Response complete');
-  setAgent('explanation', 'done', `${(2.8 + Math.random()*0.7).toFixed(2)}s`);
 
-  // Citations
-  const citEl = document.getElementById('citations');
-  for (let i = 0; i < d.citations.length; i++) {
-    await delay(120);
-    const chip = document.createElement('span');
-    chip.className = 'cite-chip';
-    chip.textContent = d.citations[i];
-    citEl.appendChild(chip);
-    requestAnimationFrame(() => chip.classList.add('visible'));
-  }
+  handleEvent({
+    type: 'complete',
+    answer: d.answer,
+    citations: d.citations,
+    risk_level: d.risk_level,
+    requires_review: d.requires_review,
+    confidence: d.confidence,
+    latency_ms: d.latency_ms,
+  });
 
-  // Review flag
-  if (d.requires_review) {
-    await delay(200);
-    const flag = document.getElementById('review-flag');
-    flag.style.display = 'inline-flex';
-    requestAnimationFrame(() => flag.classList.add('visible'));
-  }
-
-  addLog('AUDIT', 'audit', 'log_decision: response dispatched via SSE');
-  setProgress('Complete', 100);
-  await delay(300);
-  addLog('AUDIT', 'audit', 'query_id: ', 'hashed — PII redacted from log');
+  setStreaming(false);
 }
 
 async function loop() {
-  if (running) return;
-  running = true;
   while (true) {
-    await runDemo(demos[currentDemo]);
-    await delay(3800);
+    await runDemo(demos[currentDemo], currentDemo);
+    await delay(4200);
     currentDemo = (currentDemo + 1) % demos.length;
   }
 }
 
 loop();
 </script>
+
+<!-- Citation source-text modal -->
+<div class="cite-modal-overlay" id="citeModalOverlay" onclick="if(event.target===this)closeCiteModal()">
+  <div class="cite-modal" role="dialog" aria-modal="true">
+    <div class="cite-modal-header">
+      <span class="cite-modal-title" id="citeModalTitle"></span>
+      <span class="cite-modal-meta" id="citeModalMeta"></span>
+      <button class="cite-modal-close" onclick="closeCiteModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="cite-modal-body" id="citeModalBody"></div>
+  </div>
+</div>
 </body>
 </html>
